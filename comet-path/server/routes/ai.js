@@ -6,7 +6,7 @@ function getModel() {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY not set');
   const genAI = new GoogleGenerativeAI(key);
-  return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  return genAI.getGenerativeModel({ model: 'gemini-3-pro-preview' });
 }
 
 // POST /api/ai/recommend
