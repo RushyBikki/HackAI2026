@@ -1,0 +1,12 @@
+{
+  "name": "hackai2026",
+  "version": "0.1.0",
+  "description": "Hack AI project 2026",
+  "main": "main.js",
+  "scripts": {
+    "dev": "http-server . -p 3000 -o"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

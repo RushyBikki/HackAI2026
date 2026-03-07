@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hack AI 2026 - Start Screen</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="scanlines"></div>
+    <div class="noise"></div>
+
+    <main class="start-screen">
+      <section class="logo-section">
+        <div class="logo-orbit">
+          <div class="logo-core">AI</div>
+          <div class="logo-ring ring-1"></div>
+          <div class="logo-ring ring-2"></div>
+        </div>
+        <h1 class="title">Hack AI 2026</h1>
+        <p class="subtitle">Rushy Bikki</p>
+      </section>
+
+      <section class="menu-section">
+        <button id="btn-start" class="btn primary">Start Game</button>
+        <button id="btn-options" class="btn secondary">Options</button>
+        <button id="btn-exit" class="btn ghost">Exit</button>
+      </section>
+
+      <section class="info-section">
+        <p class="hint">Press <span class="key">Enter</span> to start</p>
+        <p class="meta">v0.1 • Prototype Start Screen</p>
+      </section>
+    </main>
+
+    <div id="overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <h2 id="overlay-title">Loading...</h2>
+        <p id="overlay-text">
+          This is where your game scene or main menu would load.
+        </p>
+        <button id="btn-back" class="btn secondary small">Back</button>
+      </div>
+    </div>
+
+    <script src="main.js"></script>
+  </body>
+</html>
+
