@@ -1,16 +1,23 @@
 const BASE = '/api';
 
 async function request(path, opts = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...opts.headers },
-    ...opts,
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json', ...opts.headers },
+      ...opts,
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    });
+  } catch (networkErr) {
+    throw new Error('Cannot reach server — make sure the backend is running on port 3001');
+  }
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
+    const err = await res.json().catch(() => ({ error: res.statusText || `HTTP ${res.status}` }));
     throw new Error(err.error || `HTTP ${res.status}`);
   }
-  return res.json();
+  return res.json().catch(() => {
+    throw new Error('Server returned an invalid response');
+  });
 }
 
 // Courses
