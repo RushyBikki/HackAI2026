@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUser, getCourses, updatePlan } from '../utils/api.js';
-import { buildGraph, normalizeCourseId } from '../utils/graphBuilder.js';
+import { buildGraph, normalizeCourseId, DEPT_COLORS } from '../utils/graphBuilder.js';
 import { MAJOR_CORE, CONCENTRATION_COURSES } from '../utils/degreeData.js';
 import TechTree from '../components/TechTree.jsx';
 import CoursePanel from '../components/CoursePanel.jsx';
@@ -32,10 +32,6 @@ const MAJOR_PREFIXES = {
   'Economics':             ['ECON', 'MATH', 'STAT'],
 };
 
-const DEPT_COLORS = {
-  CS: '#3b82f6', MATH: '#ef4444', CGS: '#a855f7', SE: '#22c55e',
-  ECS: '#f59e0b', PHYS: '#06b6d4', CHEM: '#f97316',
-};
 
 function DegStat({ big, sub, label, color }) {
   return (
@@ -79,7 +75,20 @@ export default function Planner() {
       setUser(userData);
 
       const prefixes = MAJOR_PREFIXES[userData.major] || ['CS'];
-      const results = await Promise.allSettled(prefixes.map(p => getCourses(p)));
+
+      // Also fetch any extra prefixes found in completed/planned courses
+      // so stub courses (BIOL, HIST, RHET, etc.) get real names from Nebula
+      const plannedFlat = (userData.plannedSemesters || []).flatMap(s => s.courses);
+      const allUserCourseIds = [...(userData.completedCourses || []), ...plannedFlat];
+      const extraPrefixes = [...new Set(
+        allUserCourseIds
+          .map(id => id.match(/^[A-Z]+/)?.[0])
+          .filter(p => p && !prefixes.includes(p))
+      )];
+
+      const results = await Promise.allSettled(
+        [...prefixes, ...extraPrefixes].map(p => getCourses(p))
+      );
       const all = [];
       for (const r of results) {
         if (r.status === 'fulfilled' && r.value?.data) all.push(...r.value.data);
@@ -188,7 +197,8 @@ export default function Planner() {
   const coreDone = majorData ? majorData.core.filter(id => allCompletedIds.includes(id)).length : 0;
   const majorCoursesTotal = majorData ? majorData.prep.length + majorData.core.length : 0;
   const majorCoursesDone = prepDone + coreDone;
-  const totalCreditsEstimate = allCompletedIds.length * 3;
+  const creditMap = Object.fromEntries(allCourses.map(c => [c.courseId, parseInt(c.credit_hours, 10) || 3]));
+  const totalCreditsEstimate = allCompletedIds.reduce((sum, id) => sum + (creditMap[id] || 3), 0);
   const totalCreditsRequired = majorData?.totalCredits || 120;
   const concCourses = (user?.concentrations || []).flatMap(c => CONCENTRATION_COURSES[user?.major]?.[c] || []);
   const concDone = concCourses.filter(id => allCompletedIds.includes(id)).length;
@@ -242,7 +252,7 @@ export default function Planner() {
 
           {/* Filter */}
           <div className="flex gap-1">
-            {['all', 'available', 'CS', 'MATH', 'SE'].map(f => (
+            {['all', 'available'].map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -252,7 +262,7 @@ export default function Planner() {
                     : 'bg-space-700 text-gray-400 hover:text-white border border-blue-900/50'
                 }`}
               >
-                {f === 'all' ? 'All' : f === 'available' ? 'Unlocked' : f}
+                {f === 'all' ? 'All' : 'Unlocked'}
               </button>
             ))}
           </div>
@@ -305,14 +315,23 @@ export default function Planner() {
             <span className="font-medium">{count}</span> {label}
           </button>
         ))}
-        {/* Dept legend */}
-        <div className="ml-auto flex items-center gap-2">
-          {Object.entries(DEPT_COLORS).slice(0, 4).map(([dept, color]) => (
-            <div key={dept} className="flex items-center gap-1 text-xs text-gray-500">
-              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: color }} />
-              {dept}
-            </div>
-          ))}
+        {/* Dept legend — show only depts present in current nodes */}
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          {[...new Set(nodes.map(n => n.data.prefix).filter(Boolean))]
+            .filter(dept => DEPT_COLORS[dept])
+            .sort()
+            .map(dept => (
+              <button
+                key={dept}
+                onClick={() => setFilter(filter === dept ? 'all' : dept)}
+                className={`flex items-center gap-1 text-xs transition-colors px-1.5 py-0.5 rounded ${
+                  filter === dept ? 'bg-space-700 text-white' : 'text-gray-500 hover:text-white'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: DEPT_COLORS[dept] }} />
+                {dept}
+              </button>
+            ))}
         </div>
       </div>
 

@@ -139,23 +139,6 @@ export default function AdvisorPanel({ user, availableCourses, onHighlight }) {
         )}
       </div>
 
-      {/* Stats footer */}
-      <div className="p-4 border-t border-blue-900/30 flex-shrink-0">
-        <div className="flex justify-around text-center">
-          <div>
-            <div className="text-lg font-bold text-white">{user?.completedCourses?.length || 0}</div>
-            <div className="text-xs text-gray-500">Completed</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold text-blue-400">{availableCourses?.length || 0}</div>
-            <div className="text-xs text-gray-500">Available</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold text-yellow-400">{user?.plannedSemesters?.reduce((s, sem) => s + sem.courses.length, 0) || 0}</div>
-            <div className="text-xs text-gray-500">Planned</div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

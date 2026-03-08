@@ -74,7 +74,20 @@ export default function CoursePanel({ course, onClose, onAddToPlan }) {
     pct: total > 0 ? ((gradeDistribution[l] || 0) / total) * 100 : 0,
   })).filter(g => g.pct > 0);
 
-  const ytLink = `https://www.youtube.com/results?search_query=UTD+${course.courseId}+${encodeURIComponent(course.name)}`;
+  // Compute GPA from grade distribution when avgGPA not provided by node data
+  const GRADE_GPA_POINTS = { 'A+': 4.0, 'A': 4.0, 'A-': 3.67, 'B+': 3.33, 'B': 3.0, 'B-': 2.67, 'C+': 2.33, 'C': 2.0, 'C-': 1.67, 'D+': 1.33, 'D': 1.0, 'D-': 0.67, 'F': 0.0 };
+  const gpaEntries = Object.entries(gradeDistribution).filter(([g]) => g !== 'W');
+  const totalGpaStudents = gpaEntries.reduce((s, [, c]) => s + c, 0);
+  const computedGPA = totalGpaStudents > 0
+    ? gpaEntries.reduce((s, [g, c]) => s + (GRADE_GPA_POINTS[g] ?? 0) * c, 0) / totalGpaStudents
+    : null;
+  const displayGPA = course.avgGPA ?? computedGPA;
+
+  // Extract key topic from course name: strip filler words and ordinal suffixes
+  const FILLER = /\b(introduction|intro|topics|in|to|of|and|the|a|an|for|with|i|ii|iii|iv|v|1|2|survey|principles|fundamentals|selected)\b/gi;
+  const topic = course.name.replace(FILLER, '').replace(/\s+/g, ' ').trim() || course.name;
+  const ytLink = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${topic} full course`)}`;
+  const ocwLink = `https://www.google.com/search?q=${encodeURIComponent(`${topic} free lectures site:ocw.mit.edu OR site:coursera.org OR site:khanacademy.org`)}`;
   const statusBadge = {
     completed: 'bg-green-900 text-green-400',
     available: 'bg-blue-900 text-blue-400',
@@ -115,23 +128,33 @@ export default function CoursePanel({ course, onClose, onAddToPlan }) {
 
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
           {course.status === 'available' && (
             <button
               onClick={() => onAddToPlan?.(course)}
-              className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-sm py-2 px-3 rounded-lg transition-colors font-medium"
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm py-2 px-3 rounded-lg transition-colors font-medium"
             >
               + Add to Plan
             </button>
           )}
-          <a
-            href={ytLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 bg-red-900/40 hover:bg-red-900/60 text-red-400 text-sm py-2 px-3 rounded-lg transition-colors text-center border border-red-900/50"
-          >
-            YouTube Resources
-          </a>
+          <div className="flex gap-2">
+            <a
+              href={ytLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 bg-red-900/40 hover:bg-red-900/60 text-red-400 text-sm py-2 px-3 rounded-lg transition-colors text-center border border-red-900/50"
+            >
+              ▶ YouTube
+            </a>
+            <a
+              href={ocwLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 bg-space-700 hover:bg-space-600 text-blue-400 text-sm py-2 px-3 rounded-lg transition-colors text-center border border-blue-900/40"
+            >
+              📚 OCW / Coursera
+            </a>
+          </div>
         </div>
 
         {loading && (
@@ -145,8 +168,8 @@ export default function CoursePanel({ course, onClose, onAddToPlan }) {
             <div className="space-y-1.5">
               {gradeData.map(g => <GradeBar key={g.label} label={g.label} pct={g.pct} />)}
             </div>
-            {course.avgGPA && (
-              <p className="text-xs text-gray-400 mt-2">Avg GPA: <span className="text-white font-medium">{course.avgGPA.toFixed(2)}</span></p>
+            {displayGPA != null && (
+              <p className="text-xs text-gray-400 mt-2">Avg GPA: <span className="text-white font-medium">{displayGPA.toFixed(2)}</span></p>
             )}
           </div>
         )}

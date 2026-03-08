@@ -51,14 +51,16 @@ function extractCourseIds(text) {
   const seen = new Set();
   const courses = [];
 
-  // Primary pattern: DEPT followed by optional whitespace/dash then 4-digit number
-  // No \b after digits to handle cases like "CS1337." or "CS1337,"
-  const re = /([A-Z]{2,4})[ \t\n\r-]*(\d{4})(?!\d)/g;
+  // (?<![A-Z])  — lookbehind prevents matching word-endings (DING, GRAM, TIVE…)
+  // [ \t-]*     — only same-line whitespace between prefix and number (no \n)
+  //               prevents "BIOL\n<two lines later>1311" cross-row false matches
+  // [1-4]\d{3}  — UTD undergrad course numbers start with 1–4 (1000–4999)
+  const re = /(?<![A-Z])([A-Z]{2,4})[ \t-]*([1-4]\d{3})(?!\d)/g;
   let m;
   while ((m = re.exec(text)) !== null) {
     const id = `${m[1]}${m[2]}`;
-    // Filter noise: skip common false positives (years, page numbers, etc.)
-    if (/^(PAGE|FALL|SPRI|SUMM|TERM|DATE|YEAR|GRAD|ENRL|ATTN|EARN|QUAL|GPA|PLAN|UNIV|DEPT|COUR)/.test(m[1])) continue;
+    // Filter noise: skip header words, grade labels, and common false-positive prefixes
+    if (/^(PAGE|FALL|SPRI|SUMM|TERM|DATE|YEAR|GRAD|ENRL|ATTN|EARN|QUAL|GPA|PLAN|UNIV|DEPT|COUR|CRED|TRAN|ACAD|INST|PROG|DIVI|SEMI|TION|MENT|NESS|OUND|ANCE|ENCE|UNIT|HOUR|REQU|COMP|ONLY)/.test(m[1])) continue;
     if (!seen.has(id)) { seen.add(id); courses.push(id); }
   }
 

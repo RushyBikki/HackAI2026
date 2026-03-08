@@ -171,19 +171,53 @@ router.get('/professors/:courseId', async (req, res) => {
       return res.status(404).json({ error: 'Course not found in Nebula.' });
     }
 
-    const payload = await nebulaFetch(`/course/${encodeURIComponent(nebulaId)}/professors`);
+    const [profsPayload, sectPayload] = await Promise.allSettled([
+      nebulaFetch(`/course/${encodeURIComponent(nebulaId)}/professors`),
+      nebulaFetch(`/section?course_reference=${encodeURIComponent(nebulaId)}`),
+    ]);
 
-    const rawProfs = Array.isArray(payload?.data) ? payload.data : [];
-    const profs = rawProfs.map(p => ({
-      ...p,
-      name: [p.first_name, p.last_name].filter(Boolean).join(' ') || p.name || 'Unknown',
-    }));
+    const rawProfs = Array.isArray(profsPayload?.value?.data) ? profsPayload.value.data : [];
 
-    res.json({
-      status: 200,
-      course,
-      data: profs,
+    // Build per-professor GPA from section-level grade distributions
+    const GRADE_LABELS = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F', 'W'];
+    const GRADE_PTS   = [4.0, 4.0, 3.67, 3.33, 3.0, 2.67, 2.33, 2.0, 1.67, 1.33, 1.0, 0.67, 0.0, 0.0];
+
+    const profGrades = {}; // profId -> { pts, students }
+    const sections = Array.isArray(sectPayload?.value?.data) ? sectPayload.value.data : [];
+    for (const sect of sections) {
+      const instrIds = Array.isArray(sect.professor_ids) ? sect.professor_ids : [];
+      const dist = sect.grade_distribution;
+      if (!dist || instrIds.length === 0) continue;
+
+      let pts = 0, students = 0;
+      GRADE_LABELS.forEach((label, i) => {
+        if (label === 'W') return;
+        const count = Array.isArray(dist) ? (dist[i] || 0) : (dist[label] || 0);
+        if (count > 0) { pts += GRADE_PTS[i] * count; students += count; }
+      });
+      if (students === 0) continue;
+
+      for (const id of instrIds) {
+        if (!profGrades[id]) profGrades[id] = { pts: 0, students: 0 };
+        profGrades[id].pts += pts;
+        profGrades[id].students += students;
+      }
+    }
+
+    const profs = rawProfs.map(p => {
+      const pid = p._id || p.id;
+      const g = profGrades[pid];
+      const avgGpa = g && g.students > 0 ? g.pts / g.students : null;
+      const sections = g ? g.students : null;
+      return {
+        ...p,
+        name: [p.first_name, p.last_name].filter(Boolean).join(' ') || p.name || 'Unknown',
+        avgGpa,
+        sections,
+      };
     });
+
+    res.json({ status: 200, course, data: profs });
   } catch (err) {
     console.error('[Professor API] Error:', err.message);
     res.status(502).json({

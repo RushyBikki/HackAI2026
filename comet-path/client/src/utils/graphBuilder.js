@@ -1,15 +1,30 @@
 // Converts Nebula course data into React Flow nodes + edges.
 
-const DEPT_COLORS = {
-  CS: '#3b82f6',   // blue
+export const DEPT_COLORS = {
+  CS:   '#3b82f6', // blue
   MATH: '#ef4444', // red
-  CGS: '#a855f7',  // purple
-  SE: '#22c55e',   // green
-  ECS: '#f59e0b',  // amber
+  CGS:  '#a855f7', // purple
+  SE:   '#22c55e', // green
+  ECS:  '#f59e0b', // amber
   PHYS: '#06b6d4', // cyan
   CHEM: '#f97316', // orange
   HIST: '#84cc16', // lime
   COMM: '#ec4899', // pink
+  GOVT: '#a16207', // yellow-brown
+  RHET: '#db2777', // deep pink
+  NSC:  '#14b8a6', // teal
+  PSY:  '#8b5cf6', // violet
+  BIOL: '#10b981', // emerald
+  EE:   '#6366f1', // indigo
+  STAT: '#f43f5e', // rose
+  BA:   '#0ea5e9', // sky
+  ENGR: '#78716c', // stone
+  ATCM: '#d946ef', // fuchsia
+  MIS:  '#f59e0b', // amber (ITSS/MIS share)
+  ITSS: '#fb923c', // orange-ish
+  FIN:  '#34d399', // mint
+  ECON: '#60a5fa', // light blue
+  ACCT: '#a78bfa', // lavender
   DEFAULT: '#6b7280',
 };
 
@@ -57,6 +72,10 @@ export function buildGraph(courses, completedCourses, plannedCourses = [], grade
   // Server normalizeCourse() already sets courseId = subject_prefix + course_number (e.g. "CS1337")
   const courseIds = new Set(courses.map(c => c.courseId).filter(Boolean));
 
+  // Allow prereqs to reference completed/planned stub nodes so completed courses
+  // that aren't in the Nebula fetch (gen-eds, transfers) still show edges into the tree
+  const allKnownIds = new Set([...courseIds, ...normalizedCompleted, ...normalizedPlanned]);
+
   for (const course of courses) {
     const id = course.courseId; // e.g. "CS1337"
     if (!id) continue;
@@ -64,7 +83,7 @@ export function buildGraph(courses, completedCourses, plannedCourses = [], grade
     // enrollment_reqs has human-readable text like "Prerequisite: CS 1337 or CS 1136"
     // course.prerequisites is a structured JSON object — not parseable by regex
     const prereqStr = course.enrollment_reqs || '';
-    const prereqs = parsePrereqs(prereqStr).filter(p => courseIds.has(p));
+    const prereqs = parsePrereqs(prereqStr).filter(p => allKnownIds.has(p));
     const status = getCourseStatus(id, normalizedCompleted, prereqs, normalizedPlanned);
     const gradeInfo = gradeMap[id] || {};
 

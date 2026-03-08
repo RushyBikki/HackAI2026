@@ -10,15 +10,13 @@ import {
 } from '@xyflow/react';
 import CourseNode from './CourseNode.jsx';
 import { layoutGraph } from '../utils/layoutEngine.js';
+import { DEPT_COLORS } from '../utils/graphBuilder.js';
 
 const DEPT_LEGEND = [
-  { label: 'CS', color: '#3b82f6' },
-  { label: 'MATH', color: '#ef4444' },
-  { label: 'SE', color: '#22c55e' },
-  { label: 'CGS', color: '#a855f7' },
-  { label: 'PHYS', color: '#06b6d4' },
-  { label: 'ECS', color: '#f59e0b' },
-  { label: 'Other', color: '#6b7280' },
+  ...Object.entries(DEPT_COLORS)
+    .filter(([k]) => k !== 'DEFAULT')
+    .map(([label, color]) => ({ label, color })),
+  { label: 'Other', color: DEPT_COLORS.DEFAULT },
 ];
 
 function Legend() {
