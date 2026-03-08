@@ -63,10 +63,10 @@ async function resolveCourse(identifier) {
   const parsed = parseCourseCode(identifier);
 
   if (parsed) {
+    // NOTE: Adding limit/offset causes Nebula to return data:null — omit them
     const query =
       `/course?subject_prefix=${encodeURIComponent(parsed.subject_prefix)}` +
-      `&course_number=${encodeURIComponent(parsed.course_number)}` +
-      `&offset=0&limit=10`;
+      `&course_number=${encodeURIComponent(parsed.course_number)}`;
 
     const payload = await nebulaFetch(query);
     const items = Array.isArray(payload?.data) ? payload.data : [];
@@ -115,21 +115,35 @@ router.get('/grades/:courseId', async (req, res) => {
 
     const payload = await nebulaFetch(`/course/${encodeURIComponent(nebulaId)}/grades`);
     const raw = payload?.data;
+    console.log(`[Grade API] ${req.params.courseId} -> Nebula returned:`, JSON.stringify(raw)?.slice(0, 200));
 
-    if (!Array.isArray(raw)) {
-      return res.json({
-        status: 200,
-        data: [],
-        course,
-      });
+    if (!raw) {
+      return res.json({ status: 200, data: [], course });
     }
 
     const labels = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F', 'W'];
     const grade_distribution = {};
 
-    labels.forEach((label, i) => {
-      if (raw[i] != null && raw[i] > 0) grade_distribution[label] = raw[i];
-    });
+    if (Array.isArray(raw) && typeof raw[0] === 'number') {
+      // Flat 14-element array of counts
+      labels.forEach((label, i) => {
+        if (raw[i] != null && raw[i] > 0) grade_distribution[label] = raw[i];
+      });
+    } else if (Array.isArray(raw) && raw[0]?.grade_distribution) {
+      // Array of section objects, each with grade_distribution array or object
+      for (const section of raw) {
+        const dist = section.grade_distribution;
+        if (Array.isArray(dist)) {
+          labels.forEach((label, i) => {
+            if (dist[i] != null && dist[i] > 0) grade_distribution[label] = (grade_distribution[label] || 0) + dist[i];
+          });
+        } else if (dist && typeof dist === 'object') {
+          for (const [k, v] of Object.entries(dist)) {
+            if (v > 0) grade_distribution[k] = (grade_distribution[k] || 0) + v;
+          }
+        }
+      }
+    }
 
     res.json({
       status: 200,

@@ -48,7 +48,7 @@ function CourseNode({ data, selected }) {
       )}
 
       {/* Department color bar */}
-      <div className="h-1 w-full" style={{ backgroundColor: deptColor }} />
+      <div className="h-2.5 w-full" style={{ backgroundColor: deptColor }} />
 
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">

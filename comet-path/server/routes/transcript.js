@@ -2,9 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Memory storage — we process the buffer directly, never touch disk
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // POST /api/transcript/file  — multipart file upload (PDF or TXT)
@@ -13,96 +11,58 @@ router.post('/file', upload.single('transcript'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
     let rawText = '';
-    const mime = req.file.mimetype;
-
-    if (mime === 'application/pdf' || req.file.originalname.endsWith('.pdf')) {
+    if (req.file.mimetype === 'application/pdf' || req.file.originalname.endsWith('.pdf')) {
       const parsed = await pdfParse(req.file.buffer);
       rawText = parsed.text;
     } else {
-      // text/plain or anything else — decode as UTF-8
       rawText = req.file.buffer.toString('utf-8');
     }
 
-    const result = await processTranscript(rawText);
-    res.json(result);
+    // Normalize: replace all Unicode/special whitespace with plain spaces, then
+    // collapse runs of spaces so the regex can match "CS  1337" or "CS\u00a01337"
+    rawText = rawText
+      .replace(/[\u00a0\u2000-\u200b\u202f\u205f\u3000]/g, ' ') // Unicode spaces → ASCII space
+      .replace(/\r\n/g, '\n')                                     // CRLF → LF
+      .toUpperCase();                                              // uppercase so regex matches
+
+    console.log('[transcript] PDF text sample:', rawText.slice(0, 400));
+
+    res.json(processTranscript(rawText));
   } catch (err) {
     console.error('[transcript/file]', err);
-    res.status(500).json({ error: 'Failed to process transcript.' });
+    res.status(500).json({ error: err.message || 'Failed to process transcript.' });
   }
 });
 
 // POST /api/transcript/text  — JSON body { text: "..." } for pasted transcript
-router.post('/text', async (req, res) => {
-  try {
-    const rawText = req.body?.text || '';
-    if (!rawText.trim()) return res.status(400).json({ error: 'No transcript text provided' });
-    const result = await processTranscript(rawText);
-    res.json(result);
-  } catch (err) {
-    console.error('[transcript/text]', err);
-    res.status(500).json({ error: 'Failed to process transcript.' });
-  }
+router.post('/text', (req, res) => {
+  const rawText = (req.body?.text || '').toUpperCase();
+  if (!rawText.trim()) return res.status(400).json({ error: 'No transcript text provided' });
+  res.json(processTranscript(rawText));
 });
 
-// Shared processing logic
-async function processTranscript(rawText) {
-  const regexCourses = extractCourseIds(rawText);
-
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey && regexCourses.length < 3) {
-    try {
-      const geminiCourses = await parseWithGemini(rawText, geminiKey);
-      return { courses: geminiCourses, method: 'gemini', count: geminiCourses.length };
-    } catch (err) {
-      console.warn('[transcript] Gemini fallback failed:', err.message);
-    }
-  }
-
-  return { courses: regexCourses, method: 'regex', count: regexCourses.length };
-}
-
-// Normalize a course identifier into a canonical form like "CS1337"
-// Handles variants such as "cs 1337", "CS-1337", etc.
-function normalizeCourseId(raw) {
-  if (!raw) return '';
-  const s = String(raw).toUpperCase().trim();
-  const match = s.match(/([A-Z]{2,4})\s*-?\s*(\d{4})/);
-  if (match) {
-    const [, prefix, number] = match;
-    return `${prefix}${number}`;
-  }
-  // Fallback: strip whitespace
-  return s.replace(/\s+/g, '');
+function processTranscript(text) {
+  const courses = extractCourseIds(text);
+  console.log('[transcript] Courses found:', courses);
+  return { courses, method: 'regex', count: courses.length };
 }
 
 function extractCourseIds(text) {
-  const matches = text.match(/\b([A-Z]{2,4})\s*-?\s*(\d{4})\b/g) || [];
-  const courses = matches.map(m => normalizeCourseId(m));
-  return [...new Set(courses)];
-}
+  const seen = new Set();
+  const courses = [];
 
-async function parseWithGemini(text, apiKey) {
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  // Primary pattern: DEPT followed by optional whitespace/dash then 4-digit number
+  // No \b after digits to handle cases like "CS1337." or "CS1337,"
+  const re = /([A-Z]{2,4})[ \t\n\r-]*(\d{4})(?!\d)/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const id = `${m[1]}${m[2]}`;
+    // Filter noise: skip common false positives (years, page numbers, etc.)
+    if (/^(PAGE|FALL|SPRI|SUMM|TERM|DATE|YEAR|GRAD|ENRL|ATTN|EARN|QUAL|GPA|PLAN|UNIV|DEPT|COUR)/.test(m[1])) continue;
+    if (!seen.has(id)) { seen.add(id); courses.push(id); }
+  }
 
-  const prompt = `Extract all completed UTD course IDs from this unofficial transcript.
-Return ONLY a JSON array like ["CS1337", "MATH2414"].
-Only include courses with final grades A, B, C, D, or P. Skip W (withdrawal) and IP (in progress).
-Normalize format: prefix + number, no space (e.g. "CS 1337" -> "CS1337").
-
-Transcript:
-${text.slice(0, 4000)}
-
-Return ONLY the JSON array, nothing else.`;
-
-  const result = await model.generateContent(prompt);
-  const clean = result.response.text().trim()
-    .replace(/^```json?\n?/, '').replace(/\n?```$/, '');
-  const parsed = JSON.parse(clean);
-  const normalized = Array.isArray(parsed)
-    ? parsed.map(normalizeCourseId).filter(Boolean)
-    : [];
-  return [...new Set(normalized)];
+  return courses;
 }
 
 module.exports = router;

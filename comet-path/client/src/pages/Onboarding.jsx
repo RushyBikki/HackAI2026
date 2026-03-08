@@ -113,6 +113,20 @@ const ELECTIVE_TRACKS = {
     'Statistics',
     'Applied Mathematics',
   ],
+  'Neuroscience': [
+    'Undecided',
+    'Medical Neuroscience Track',
+    'Research Neuroscience Track',
+    'Industrial Neuroscience Track',
+  ],
+  'Finance': [
+    'Undecided',
+    'Investment',
+    'Financial Management',
+    'FinTech',
+    'Real Estate Finance',
+    'Risk Management and Insurance Technology',
+  ],
 };
 
 export default function Onboarding() {
@@ -298,9 +312,18 @@ export default function Onboarding() {
 
         {step === 2 && (
           <>
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-4">
               <button onClick={() => setStep(1)} className="text-blue-400 hover:text-white text-sm">← Back</button>
               <h2 className="text-2xl font-semibold text-white">Mark completed courses</h2>
+            </div>
+
+            {/* Prominent instructions */}
+            <div className="mb-4 bg-blue-950/40 border border-blue-700/40 rounded-xl p-4">
+              <p className="text-sm text-white font-medium mb-1">How to fill this in:</p>
+              <ol className="text-sm text-blue-200 space-y-1 list-decimal list-inside">
+                <li><span className="text-yellow-300 font-semibold">Option A — Upload transcript:</span> Drop your UTD unofficial transcript PDF below to auto-fill all completed courses instantly.</li>
+                <li><span className="text-yellow-300 font-semibold">Option B — Select manually:</span> Scroll the list below and check off each course you've finished.</li>
+              </ol>
             </div>
 
             <p className="text-blue-300 text-sm mb-4">
@@ -311,7 +334,7 @@ export default function Onboarding() {
             {/* Transcript upload shortcut */}
             <div className="mb-4 bg-space-900/60 border border-blue-900/40 rounded-xl p-4">
               <p className="text-xs text-blue-300 font-medium mb-2">
-                Auto-import from UTD transcript
+                Option A — Upload UTD transcript (PDF or paste text)
               </p>
               <TranscriptUpload
                 onCoursesExtracted={(ids) => {
@@ -324,9 +347,22 @@ export default function Onboarding() {
               />
             </div>
 
+            {/* Transfer credits */}
+            <div className="mb-4 bg-space-900/60 border border-green-900/40 rounded-xl p-4">
+              <p className="text-xs text-green-300 font-medium mb-1">Transfer credits</p>
+              <p className="text-xs text-gray-500 mb-2">Comma-separated course IDs taken at another institution (e.g. MATH2413, PHYS2325)</p>
+              <input
+                className="w-full bg-space-700 border border-green-900/60 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-600"
+                placeholder="MATH2413, PHYS2325, ..."
+                value={transferInput}
+                onChange={e => setTransferInput(e.target.value)}
+              />
+            </div>
+
+            <p className="text-xs text-blue-300 font-medium mb-2">Option B — Select courses manually</p>
             <input
               className="w-full bg-space-700 border border-blue-900 rounded-lg px-4 py-2 text-white mb-4 focus:outline-none focus:border-blue-500"
-              placeholder="Search courses..."
+              placeholder="Search courses by ID or name..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -351,34 +387,43 @@ export default function Onboarding() {
               </div>
             )}
 
-            {!loading && courses.length > 0 && (
-              <div className="max-h-96 overflow-y-auto space-y-1 pr-1">
-                {filtered.map(course => {
-                  const id = course.courseId; // e.g. "CS1337"
-                  const title = course.title || '';
-                  const credits = parseInt(course.credit_hours, 10) || 3;
-                  const done = completed.has(id);
-                  return (
-                    <label
-                      key={id}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
-                        done ? 'bg-green-900/30 border border-green-700/50' : 'hover:bg-space-700 border border-transparent'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={done}
-                        onChange={() => toggleCourse(id)}
-                        className="w-4 h-4 accent-green-500 flex-shrink-0"
-                      />
-                      <span className="text-blue-300 font-mono text-sm w-20 flex-shrink-0">{id}</span>
-                      <span className="text-white text-sm flex-1 truncate">{title}</span>
-                      <span className="text-gray-500 text-xs flex-shrink-0">{credits} cr</span>
-                    </label>
-                  );
-                })}
-              </div>
-            )}
+            {!loading && courses.length > 0 && (() => {
+              const transferIds = new Set(
+                transferInput.split(',').map(s => normalizeCourseId(s.trim())).filter(Boolean)
+              );
+              return (
+                <div className="max-h-96 overflow-y-auto space-y-1 pr-1">
+                  {filtered.map(course => {
+                    const id = course.courseId;
+                    const title = course.title || '';
+                    const credits = parseInt(course.credit_hours, 10) || 3;
+                    const done = completed.has(id);
+                    const isTransfer = transferIds.has(id);
+                    return (
+                      <label
+                        key={id}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                          isTransfer ? 'bg-green-950/40 border border-green-800/50'
+                          : done ? 'bg-green-900/30 border border-green-700/50'
+                          : 'hover:bg-space-700 border border-transparent'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={done}
+                          onChange={() => toggleCourse(id)}
+                          className="w-4 h-4 accent-green-500 flex-shrink-0"
+                        />
+                        <span className="text-blue-300 font-mono text-sm w-20 flex-shrink-0">{id}</span>
+                        <span className="text-white text-sm flex-1 truncate">{title}</span>
+                        {isTransfer && <span className="text-green-400 text-xs font-bold bg-green-900/40 px-1.5 py-0.5 rounded flex-shrink-0">T</span>}
+                        <span className="text-gray-500 text-xs flex-shrink-0">{credits} cr</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
             {error && <p className="text-red-400 mt-3 text-sm">{error}</p>}
 

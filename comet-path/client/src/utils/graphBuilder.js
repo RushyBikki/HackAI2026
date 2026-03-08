@@ -108,5 +108,31 @@ export function buildGraph(courses, completedCourses, plannedCourses = [], grade
     }
   }
 
+  // Add stub nodes for completed/planned courses not in the fetched course list
+  // (e.g. Texas Core gen-eds, cross-listed courses, or transfer credits)
+  const missingCompleted = normalizedCompleted.filter(id => !courseIds.has(id));
+  const missingPlanned = normalizedPlanned.filter(id => !courseIds.has(id));
+  for (const id of [...missingCompleted, ...missingPlanned]) {
+    const status = normalizedCompleted.includes(id) ? 'completed' : 'planned';
+    const prefix = id.match(/^[A-Z]+/)?.[0] || 'OTHER';
+    nodes.push({
+      id,
+      type: 'courseNode',
+      data: {
+        courseId: id,
+        name: id,          // no title available — just show the ID
+        prefix,
+        creditHours: 3,
+        status,
+        avgGPA: null,
+        topProfessor: null,
+        prereqString: '',
+        prereqs: [],
+        isConcentration: concentrationCourseIds.has(id),
+      },
+      position: { x: 0, y: 0 },
+    });
+  }
+
   return { nodes, edges };
 }

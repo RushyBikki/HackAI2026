@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUser, getCourses, updatePlan } from '../utils/api.js';
 import { buildGraph, normalizeCourseId } from '../utils/graphBuilder.js';
+import { MAJOR_CORE, CONCENTRATION_COURSES } from '../utils/degreeData.js';
 import TechTree from '../components/TechTree.jsx';
 import CoursePanel from '../components/CoursePanel.jsx';
 import AdvisorPanel from '../components/AdvisorPanel.jsx';
@@ -36,6 +37,18 @@ const DEPT_COLORS = {
   ECS: '#f59e0b', PHYS: '#06b6d4', CHEM: '#f97316',
 };
 
+function DegStat({ big, sub, label, color }) {
+  return (
+    <div className="flex-shrink-0 text-center px-1">
+      <div className="flex items-baseline gap-1 justify-center">
+        <span className={`text-xl font-bold ${color}`}>{big}</span>
+        <span className="text-gray-500 text-xs">{sub}</span>
+      </div>
+      <div className="text-xs text-gray-500 mt-0.5 whitespace-nowrap">{label}</div>
+    </div>
+  );
+}
+
 export default function Planner() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -50,6 +63,7 @@ export default function Planner() {
   const [filter, setFilter] = useState('all'); // 'all' | 'available' | dept prefix
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [courseListModal, setCourseListModal] = useState(null); // null | 'completed' | 'available' | 'planned' | 'locked'
 
   const userName = localStorage.getItem('cometpath_user');
 
@@ -81,7 +95,10 @@ export default function Planner() {
       setAllCourses(courses);
 
       const plannedIds = (userData.plannedSemesters || []).flatMap(s => s.courses);
-      const { nodes: n, edges: e } = buildGraph(courses, userData.completedCourses, plannedIds);
+      const concIds = new Set(
+        (userData.concentrations || []).flatMap(c => CONCENTRATION_COURSES[userData.major]?.[c] || [])
+      );
+      const { nodes: n, edges: e } = buildGraph(courses, userData.completedCourses, plannedIds, {}, concIds);
       setNodes(n);
       setEdges(e);
     } catch (err) {
@@ -114,7 +131,8 @@ export default function Planner() {
       setUser(r.user);
       // Refresh graph with new planned state
       const plannedIds = semesters.flatMap(s => s.courses);
-      const { nodes: n, edges: e } = buildGraph(allCourses, user.completedCourses, plannedIds);
+      const concIds = new Set((user.concentrations || []).flatMap(c => CONCENTRATION_COURSES[user.major]?.[c] || []));
+      const { nodes: n, edges: e } = buildGraph(allCourses, user.completedCourses, plannedIds, {}, concIds);
       setNodes(n);
       setEdges(e);
     }).catch(console.error);
@@ -126,7 +144,8 @@ export default function Planner() {
     setUser(updated);
     updatePlan(user.name, newSemesters).catch(console.error);
     const plannedIds = newSemesters.flatMap(s => s.courses);
-    const { nodes: n, edges: e } = buildGraph(allCourses, user.completedCourses, plannedIds);
+    const concIds = new Set((user.concentrations || []).flatMap(c => CONCENTRATION_COURSES[user.major]?.[c] || []));
+    const { nodes: n, edges: e } = buildGraph(allCourses, user.completedCourses, plannedIds, {}, concIds);
     setNodes(n);
     setEdges(e);
   }
@@ -162,6 +181,19 @@ export default function Planner() {
   const totalCompleted = user?.completedCourses?.length || 0;
   const totalPlanned = (user?.plannedSemesters || []).flatMap(s => s.courses).length;
 
+  // Degree progress stats
+  const majorData = MAJOR_CORE[user?.major];
+  const allCompletedIds = [...new Set([...(user?.completedCourses || []), ...(user?.transferCourses || [])])];
+  const prepDone = majorData ? majorData.prep.filter(id => allCompletedIds.includes(id)).length : 0;
+  const coreDone = majorData ? majorData.core.filter(id => allCompletedIds.includes(id)).length : 0;
+  const majorCoursesTotal = majorData ? majorData.prep.length + majorData.core.length : 0;
+  const majorCoursesDone = prepDone + coreDone;
+  const totalCreditsEstimate = allCompletedIds.length * 3;
+  const totalCreditsRequired = majorData?.totalCredits || 120;
+  const concCourses = (user?.concentrations || []).flatMap(c => CONCENTRATION_COURSES[user?.major]?.[c] || []);
+  const concDone = concCourses.filter(id => allCompletedIds.includes(id)).length;
+  const concTotal = concCourses.length;
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-space-900">
@@ -193,9 +225,9 @@ export default function Planner() {
           <span className="font-bold text-white text-lg">CometPath</span>
           <span className="text-gray-500 text-sm hidden sm:block">
             {user?.name} • {user?.major}
-            {user?.concentration && user.concentration !== 'Undecided' && (
-              <span className="text-purple-400 ml-1">· {user.concentration}</span>
-            )}
+            {user?.concentrations?.filter(c => c && c !== 'Undecided').map((c, i) => (
+              <span key={i} className="text-purple-400 ml-1">· {c}</span>
+            ))}
           </span>
         </div>
 
@@ -255,23 +287,24 @@ export default function Planner() {
       </header>
 
       {/* Status bar */}
-      <div className="flex items-center gap-4 px-4 py-2 bg-space-900 border-b border-blue-900/20 flex-shrink-0">
-        <div className="flex items-center gap-1.5 text-xs">
-          <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />
-          <span className="text-gray-400">{totalCompleted} completed</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block animate-pulse" />
-          <span className="text-gray-400">{availableCourses.length} available</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs">
-          <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 inline-block" />
-          <span className="text-gray-400">{totalPlanned} planned</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs">
-          <span className="w-2.5 h-2.5 rounded-full bg-gray-600 inline-block" />
-          <span className="text-gray-400">{nodes.filter(n => n.data.status === 'locked').length} locked</span>
-        </div>
+      <div className="flex items-center gap-1 px-4 py-2 bg-space-900 border-b border-blue-900/20 flex-shrink-0">
+        {[
+          { key: 'completed', dot: 'bg-green-500', label: 'completed', count: totalCompleted },
+          { key: 'available', dot: 'bg-blue-500 animate-pulse', label: 'available', count: availableCourses.length },
+          { key: 'planned',   dot: 'bg-yellow-500', label: 'planned',   count: totalPlanned },
+          { key: 'locked',    dot: 'bg-gray-600',   label: 'locked',    count: nodes.filter(n => n.data.status === 'locked').length },
+        ].map(({ key, dot, label, count }) => (
+          <button
+            key={key}
+            onClick={() => setCourseListModal(courseListModal === key ? null : key)}
+            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg transition-colors mr-1 ${
+              courseListModal === key ? 'bg-space-700 text-white' : 'text-gray-400 hover:text-white hover:bg-space-700'
+            }`}
+          >
+            <span className={`w-2.5 h-2.5 rounded-full inline-block ${dot}`} />
+            <span className="font-medium">{count}</span> {label}
+          </button>
+        ))}
         {/* Dept legend */}
         <div className="ml-auto flex items-center gap-2">
           {Object.entries(DEPT_COLORS).slice(0, 4).map(([dept, color]) => (
@@ -282,6 +315,60 @@ export default function Planner() {
           ))}
         </div>
       </div>
+
+      {/* Course list drawer (completed / available / planned / locked) */}
+      {courseListModal && (() => {
+        const statusNodes = nodes.filter(n => {
+          if (courseListModal === 'completed') return n.data.status === 'completed';
+          if (courseListModal === 'available') return n.data.status === 'available';
+          if (courseListModal === 'planned')   return n.data.status === 'planned';
+          if (courseListModal === 'locked')    return n.data.status === 'locked';
+          return false;
+        });
+        const colors = { completed: 'text-green-400', available: 'text-blue-400', planned: 'text-yellow-400', locked: 'text-gray-400' };
+        return (
+          <div className="bg-space-800/95 border-b border-blue-900/30 flex-shrink-0 max-h-48 overflow-y-auto">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-blue-900/20 sticky top-0 bg-space-800">
+              <span className={`text-xs font-semibold uppercase tracking-wide ${colors[courseListModal]}`}>
+                {statusNodes.length} {courseListModal} courses
+              </span>
+              <button onClick={() => setCourseListModal(null)} className="text-gray-500 hover:text-white text-xs">✕ close</button>
+            </div>
+            <div className="px-4 py-2 flex flex-wrap gap-1.5">
+              {statusNodes.map(n => (
+                <button
+                  key={n.id}
+                  onClick={() => { handleNodeClick(n.data); setCourseListModal(null); }}
+                  className="font-mono text-xs px-2 py-1 rounded bg-space-700 hover:bg-space-600 text-white border border-blue-900/30 transition-colors"
+                  title={n.data.name}
+                >
+                  {n.id}
+                </button>
+              ))}
+              {statusNodes.length === 0 && <span className="text-gray-500 text-xs py-2">None yet.</span>}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Degree progress info bar */}
+      {majorData && (
+        <div className="flex items-center gap-1 px-4 py-2 bg-space-800/70 border-b border-blue-900/20 flex-shrink-0 overflow-x-auto">
+          <DegStat big={`${totalCreditsEstimate}`} sub={`/ ${totalCreditsRequired}`} label="Est. Credits" color="text-white" />
+          <div className="w-px h-8 bg-blue-900/30 flex-shrink-0 mx-2" />
+          <DegStat big={`${majorCoursesDone}`} sub={`/ ${majorCoursesTotal}`} label="Major Courses" color="text-blue-400" />
+          {concTotal > 0 && <>
+            <div className="w-px h-8 bg-blue-900/30 flex-shrink-0 mx-2" />
+            <DegStat big={`${concDone}`} sub={`/ ${concTotal}`} label="Concentration" color="text-purple-400" />
+          </>}
+          {(user?.transferCourses?.length > 0) && <>
+            <div className="w-px h-8 bg-blue-900/30 flex-shrink-0 mx-2" />
+            <DegStat big={`${user.transferCourses.length}`} sub="courses" label="Transfer" color="text-green-400" />
+          </>}
+          <div className="w-px h-8 bg-blue-900/30 flex-shrink-0 mx-2" />
+          <DegStat big={`${majorCoursesTotal - majorCoursesDone}`} sub="remaining" label="Major Left" color="text-yellow-400" />
+        </div>
+      )}
 
       {/* Main content area */}
       <div className="flex-1 flex overflow-hidden">

@@ -38,13 +38,8 @@ Return ONLY a valid JSON array, no markdown, no code blocks:
     res.json({ recommendations });
   } catch (err) {
     console.error('[AI/recommend]', err);
-    const msg = err && err.message ? String(err.message) : '';
-    const isConfig = msg.includes('GEMINI_API_KEY') || msg.toLowerCase().includes('api key');
-    res.status(500).json({
-      error: isConfig
-        ? 'Gemini API key not configured or invalid.'
-        : 'Failed to generate AI recommendations.',
-    });
+    const msg = err && err.message ? String(err.message) : 'Unknown error';
+    res.status(500).json({ error: msg });
   }
 });
 

@@ -3,4 +3,6 @@ comet-path/server/.env
 comet-path/server/.env.local
 *.env
 *.env.local
+# But allow the example template
+!*.env.example
 

@@ -19,14 +19,14 @@ export default function AdvisorPanel({ user, availableCourses, onHighlight }) {
     try {
       const result = await getRecommendations({
         major: user.major,
-        concentration: user.concentration,
+        concentration: (user.concentrations || []).filter(c => c !== 'Undecided').join(', ') || user.concentration,
         completedCourses: user.completedCourses,
         availableCourses: availableCourses.slice(0, 20),
         gradeData: {},
       });
       setRecs(result.recommendations || []);
     } catch (e) {
-      setError(e.message.includes('GEMINI_API_KEY') ? 'Gemini API key not configured.' : e.message);
+      setError(e.message || 'Failed to get recommendations.');
     } finally {
       setLoading(false);
     }
