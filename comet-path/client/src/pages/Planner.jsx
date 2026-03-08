@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUser, getCourses, updatePlan } from '../utils/api.js';
-import { buildGraph } from '../utils/graphBuilder.js';
+import { buildGraph, normalizeCourseId } from '../utils/graphBuilder.js';
 import TechTree from '../components/TechTree.jsx';
 import CoursePanel from '../components/CoursePanel.jsx';
 import AdvisorPanel from '../components/AdvisorPanel.jsx';
@@ -124,14 +124,20 @@ export default function Planner() {
   }
 
   function handleSearch(e) {
-    const val = e.target.value.toUpperCase().replace(/\s/g, '');
-    setSearchTerm(e.target.value);
-    if (val.length >= 4) setSearchTarget(val);
+    const value = e.target.value;
+    setSearchTerm(value);
+    const normalized = normalizeCourseId(value);
+    if (normalized && normalized.length >= 4) {
+      setSearchTarget(normalized);
+    } else {
+      setSearchTarget(null);
+    }
   }
 
   function handleHighlight(courseId) {
-    setSearchTarget(courseId);
-    const node = nodes.find(n => n.id === courseId);
+    const target = normalizeCourseId(courseId);
+    setSearchTarget(target);
+    const node = nodes.find(n => n.id === target);
     if (node) setSelectedCourse(node.data);
   }
 

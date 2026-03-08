@@ -37,8 +37,14 @@ Return ONLY a valid JSON array, no markdown, no code blocks:
     const recommendations = JSON.parse(clean);
     res.json({ recommendations });
   } catch (err) {
-    console.error('[AI/recommend]', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('[AI/recommend]', err);
+    const msg = err && err.message ? String(err.message) : '';
+    const isConfig = msg.includes('GEMINI_API_KEY') || msg.toLowerCase().includes('api key');
+    res.status(500).json({
+      error: isConfig
+        ? 'Gemini API key not configured or invalid.'
+        : 'Failed to generate AI recommendations.',
+    });
   }
 });
 
@@ -82,8 +88,14 @@ Keep it under 200 words, conversational, helpful.`;
       totalCompleted: completedCourses.length,
     });
   } catch (err) {
-    console.error('[AI/whatif]', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('[AI/whatif]', err);
+    const msg = err && err.message ? String(err.message) : '';
+    const isConfig = msg.includes('GEMINI_API_KEY') || msg.toLowerCase().includes('api key');
+    res.status(500).json({
+      error: isConfig
+        ? 'Gemini API key not configured or invalid.'
+        : 'Failed to generate What-If analysis.',
+    });
   }
 });
 
@@ -101,8 +113,14 @@ Write 1-2 sentences comparing them for a student deciding who to take. Be direct
     const result = await model.generateContent(prompt);
     res.json({ insight: result.response.text().trim() });
   } catch (err) {
-    console.error('[AI/professor-insight]', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('[AI/professor-insight]', err);
+    const msg = err && err.message ? String(err.message) : '';
+    const isConfig = msg.includes('GEMINI_API_KEY') || msg.toLowerCase().includes('api key');
+    res.status(500).json({
+      error: isConfig
+        ? 'Gemini API key not configured or invalid.'
+        : 'Failed to generate professor insight.',
+    });
   }
 });
 

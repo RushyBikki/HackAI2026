@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCourses, saveUser } from '../utils/api.js';
 import TranscriptUpload from '../components/TranscriptUpload.jsx';
+import { normalizeCourseId } from '../utils/graphBuilder.js';
 
 const UTD_MAJORS = [
   'Computer Science',
@@ -79,10 +80,11 @@ export default function Onboarding() {
   }
 
   function toggleCourse(id) {
+    const normalized = normalizeCourseId(id);
     setCompleted(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(normalized)) next.delete(normalized);
+      else next.add(normalized);
       return next;
     });
   }
@@ -105,10 +107,20 @@ export default function Onboarding() {
   const filtered = courses.filter(c => {
     const id = c._id || c.course_number || '';
     const title = c.title || c.long_title || '';
-    return (
-      id.toLowerCase().includes(search.toLowerCase()) ||
-      title.toLowerCase().includes(search.toLowerCase())
-    );
+
+    const rawTerm = search.trim().toLowerCase();
+    const normalizedSearch = normalizeCourseId(search);
+    if (!rawTerm && !normalizedSearch) return true;
+
+    const idMatch =
+      rawTerm &&
+      (id.toLowerCase().includes(rawTerm) || title.toLowerCase().includes(rawTerm));
+
+    const normalizedId = normalizeCourseId(id);
+    const normalizedMatch =
+      normalizedSearch && normalizedId.includes(normalizedSearch);
+
+    return Boolean(idMatch || normalizedMatch);
   });
 
   return (
@@ -188,7 +200,7 @@ export default function Onboarding() {
                 onCoursesExtracted={(ids) => {
                   setCompleted(prev => {
                     const next = new Set(prev);
-                    ids.forEach(id => next.add(id));
+                    ids.forEach(id => next.add(normalizeCourseId(id)));
                     return next;
                   });
                 }}
@@ -226,9 +238,10 @@ export default function Onboarding() {
               <div className="max-h-96 overflow-y-auto space-y-1 pr-1">
                 {filtered.map(course => {
                   const id = course._id || course.course_number;
+                  const normalizedId = normalizeCourseId(id);
                   const title = course.title || course.long_title || '';
                   const credits = course.credit_hours || course.semester_credit_hours || 3;
-                  const done = completed.has(id);
+                  const done = completed.has(normalizedId);
                   return (
                     <label
                       key={id}

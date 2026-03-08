@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const NEBULA_BASE = 'https://api.utdnebula.com';
+const COURSE_LIMIT = process.env.NEBULA_COURSE_LIMIT || 400;
 
 function nebulaHeaders() {
   return {
@@ -21,7 +22,7 @@ async function nebulaFetch(path) {
 router.get('/', async (req, res) => {
   try {
     const { prefix = 'CS' } = req.query;
-    const data = await nebulaFetch(`/course?subject_prefix=${prefix}&limit=100`);
+    const data = await nebulaFetch(`/course?subject_prefix=${prefix}&limit=${COURSE_LIMIT}`);
     res.json(data);
   } catch (err) {
     console.error(err.message);

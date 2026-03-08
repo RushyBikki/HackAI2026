@@ -18,11 +18,25 @@ export function getDeptColor(courseId) {
   return DEPT_COLORS[prefix] || DEPT_COLORS.DEFAULT;
 }
 
+// Normalize a course identifier into a canonical form like "CS1337"
+// Handles variants such as "cs 1337", "CS-1337", "cs1337.0"
+export function normalizeCourseId(raw) {
+  if (!raw) return '';
+  const s = String(raw).toUpperCase().trim();
+  const match = s.match(/([A-Z]{2,4})\s*-?\s*(\d{4})/);
+  if (match) {
+    const [, prefix, number] = match;
+    return `${prefix}${number}`;
+  }
+  // Fallback: strip whitespace
+  return s.replace(/\s+/g, '');
+}
+
 // Extract course IDs from a prereq string like "CS 1337 and MATH 2414"
 export function parsePrereqs(prereqString) {
   if (!prereqString) return [];
   const matches = prereqString.match(/[A-Z]{2,4}\s?\d{4}/g) || [];
-  return [...new Set(matches.map(m => m.replace(/\s/, '')))];
+  return [...new Set(matches.map(m => normalizeCourseId(m)))];
 }
 
 // Determine node status
@@ -36,21 +50,32 @@ export function getCourseStatus(courseId, completedCourses, prereqs, plannedCour
 export function buildGraph(courses, completedCourses, plannedCourses = [], gradeMap = {}) {
   const nodes = [];
   const edges = [];
-  const courseIds = new Set(courses.map(c => c._id || c.course_number || c.id));
+
+  const normalizedCompleted = (completedCourses || []).map(normalizeCourseId);
+  const normalizedPlanned = (plannedCourses || []).map(normalizeCourseId);
+
+  // Use normalized IDs for graph connectivity
+  const courseIds = new Set(
+    courses.map(c => normalizeCourseId(c._id || c.course_number || c.id)),
+  );
 
   for (const course of courses) {
-    const id = course._id || course.course_number || course.id;
+    const rawId = course._id || course.course_number || course.id;
+    const id = normalizeCourseId(rawId);
     const prereqStr = course.prerequisites || course.co_or_pre_requisites || '';
     const prereqs = parsePrereqs(prereqStr).filter(p => courseIds.has(p));
-    const status = getCourseStatus(id, completedCourses, prereqs, plannedCourses);
-    const gradeInfo = gradeMap[id] || {};
+    const status = getCourseStatus(id, normalizedCompleted, prereqs, normalizedPlanned);
+    const gradeInfo = gradeMap[id] || gradeMap[rawId] || {};
 
     nodes.push({
+      // React Flow node id uses normalized ID for consistent search/layout
       id,
       type: 'courseNode',
       data: {
-        courseId: id,
-        name: course.title || course.long_title || id,
+        // Keep raw Nebula ID for API calls and display
+        courseId: rawId,
+        normalizedId: id,
+        name: course.title || course.long_title || rawId,
         prefix: id.match(/^[A-Z]+/)?.[0] || 'CS',
         creditHours: course.credit_hours || course.semester_credit_hours || 3,
         status,

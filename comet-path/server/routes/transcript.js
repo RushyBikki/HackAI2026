@@ -27,7 +27,7 @@ router.post('/file', upload.single('transcript'), async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('[transcript/file]', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to process transcript.' });
   }
 });
 
@@ -40,7 +40,7 @@ router.post('/text', async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('[transcript/text]', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to process transcript.' });
   }
 });
 
@@ -61,9 +61,23 @@ async function processTranscript(rawText) {
   return { courses: regexCourses, method: 'regex', count: regexCourses.length };
 }
 
+// Normalize a course identifier into a canonical form like "CS1337"
+// Handles variants such as "cs 1337", "CS-1337", etc.
+function normalizeCourseId(raw) {
+  if (!raw) return '';
+  const s = String(raw).toUpperCase().trim();
+  const match = s.match(/([A-Z]{2,4})\s*-?\s*(\d{4})/);
+  if (match) {
+    const [, prefix, number] = match;
+    return `${prefix}${number}`;
+  }
+  // Fallback: strip whitespace
+  return s.replace(/\s+/g, '');
+}
+
 function extractCourseIds(text) {
-  const matches = text.match(/\b([A-Z]{2,4})\s?(\d{4})\b/g) || [];
-  const courses = matches.map(m => m.replace(/\s/, ''));
+  const matches = text.match(/\b([A-Z]{2,4})\s*-?\s*(\d{4})\b/g) || [];
+  const courses = matches.map(m => normalizeCourseId(m));
   return [...new Set(courses)];
 }
 
@@ -84,7 +98,11 @@ Return ONLY the JSON array, nothing else.`;
   const result = await model.generateContent(prompt);
   const clean = result.response.text().trim()
     .replace(/^```json?\n?/, '').replace(/\n?```$/, '');
-  return JSON.parse(clean);
+  const parsed = JSON.parse(clean);
+  const normalized = Array.isArray(parsed)
+    ? parsed.map(normalizeCourseId).filter(Boolean)
+    : [];
+  return [...new Set(normalized)];
 }
 
 module.exports = router;
