@@ -42,6 +42,11 @@ function CourseNode({ data, selected }) {
       `}
       style={{ boxShadow: selected ? `0 0 20px ${deptColor}55` : undefined }}
     >
+      {/* Concentration badge */}
+      {data.isConcentration && (
+        <span className="absolute top-1 right-1 text-yellow-400 text-xs z-10" title="Concentration course">★</span>
+      )}
+
       {/* Department color bar */}
       <div className="h-1 w-full" style={{ backgroundColor: deptColor }} />
 

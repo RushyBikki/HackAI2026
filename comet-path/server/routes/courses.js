@@ -89,7 +89,11 @@ router.get('/', async (req, res) => {
     const prefix = String(req.query.prefix || 'CS').toUpperCase().trim();
     // NOTE: Nebula API returns data:null when limit/offset params are passed — use bare subject_prefix only
     const payload = await nebulaFetch(`/course?subject_prefix=${encodeURIComponent(prefix)}`);
-    const courses = Array.isArray(payload?.data) ? payload.data.map(normalizeCourse) : [];
+    const courses = Array.isArray(payload?.data)
+      ? payload.data
+          .map(normalizeCourse)
+          .filter(c => !c.course_number || parseInt(c.course_number, 10) < 5000)
+      : [];
     res.json({ status: 200, data: courses });
   } catch (err) {
     console.error('[Course API] List error:', err.message);
@@ -120,11 +124,11 @@ router.get('/grades/:courseId', async (req, res) => {
       });
     }
 
-    const labels = ['A', 'B', 'C', 'D', 'F'];
+    const labels = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F', 'W'];
     const grade_distribution = {};
 
     labels.forEach((label, i) => {
-      if (raw[i] != null) grade_distribution[label] = raw[i];
+      if (raw[i] != null && raw[i] > 0) grade_distribution[label] = raw[i];
     });
 
     res.json({
@@ -155,10 +159,16 @@ router.get('/professors/:courseId', async (req, res) => {
 
     const payload = await nebulaFetch(`/course/${encodeURIComponent(nebulaId)}/professors`);
 
+    const rawProfs = Array.isArray(payload?.data) ? payload.data : [];
+    const profs = rawProfs.map(p => ({
+      ...p,
+      name: [p.first_name, p.last_name].filter(Boolean).join(' ') || p.name || 'Unknown',
+    }));
+
     res.json({
       status: 200,
       course,
-      data: Array.isArray(payload?.data) ? payload.data : payload,
+      data: profs,
     });
   } catch (err) {
     console.error('[Professor API] Error:', err.message);

@@ -47,7 +47,7 @@ export function getCourseStatus(courseId, completedCourses, prereqs, plannedCour
   return allMet ? 'available' : 'locked';
 }
 
-export function buildGraph(courses, completedCourses, plannedCourses = [], gradeMap = {}) {
+export function buildGraph(courses, completedCourses, plannedCourses = [], gradeMap = {}, concentrationCourseIds = new Set()) {
   const nodes = [];
   const edges = [];
 
@@ -81,19 +81,28 @@ export function buildGraph(courses, completedCourses, plannedCourses = [], grade
         topProfessor: gradeInfo.topProfessor ?? null,
         prereqString: prereqStr,
         prereqs,
+        isConcentration: concentrationCourseIds.has(id),
       },
       position: { x: 0, y: 0 },
     });
 
     for (const prereqId of prereqs) {
+      const srcCompleted = normalizedCompleted.includes(prereqId);
+      const edgeColor =
+        status === 'completed' ? '#16a34a'
+        : status === 'available' ? '#3b82f6'
+        : status === 'planned' ? '#ca8a04'
+        : srcCompleted ? '#4b5563'
+        : '#1f2937';
       edges.push({
         id: `${prereqId}->${id}`,
         source: prereqId,
         target: id,
         animated: status === 'available',
         style: {
-          stroke: status === 'available' ? '#3b82f6' : '#374151',
-          strokeWidth: 2,
+          stroke: edgeColor,
+          strokeWidth: (status === 'completed' || status === 'available') ? 2 : 1,
+          opacity: (status === 'locked' && !srcCompleted) ? 0.25 : 1,
         },
       });
     }

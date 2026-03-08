@@ -1,37 +1,118 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCourses, saveUser } from '../utils/api.js';
 import TranscriptUpload from '../components/TranscriptUpload.jsx';
 import { normalizeCourseId } from '../utils/graphBuilder.js';
+import { CONCENTRATION_RULES } from '../utils/degreeData.js';
 
+// UTD 2025-2026 catalog — all degree programs
 const UTD_MAJORS = [
+  // ECS
   'Computer Science',
   'Software Engineering',
   'Computer Engineering',
   'Electrical Engineering',
   'Mechanical Engineering',
+  'Data Science',
+  'Biomedical Engineering',
+  'Systems Engineering',
+  // BBS
   'Cognitive Science',
-  'Information Technology',
+  'Neuroscience',
+  'Psychology',
+  // NSM
   'Mathematics',
   'Physics',
   'Chemistry',
-  'Neuroscience',
-  'Biomedical Engineering',
+  'Biology',
+  'Biochemistry',
+  // JSOM
+  'Computer Information Systems and Technology',
+  'Business Administration',
+  'Finance',
+  // EPPS
+  'Economics',
 ];
 
+// Course prefixes needed per major to pull from Nebula API
 const MAJOR_PREFIXES = {
-  'Computer Science': ['CS', 'MATH', 'ECS', 'SE'],
-  'Software Engineering': ['SE', 'CS', 'MATH', 'ECS'],
-  'Computer Engineering': ['CE', 'CS', 'EE', 'MATH'],
-  'Electrical Engineering': ['EE', 'MATH', 'PHYS'],
-  'Mechanical Engineering': ['MECH', 'MATH', 'PHYS'],
-  'Cognitive Science': ['CGS', 'CS', 'PSYC', 'COMM'],
-  'Information Technology': ['MIS', 'CS', 'MATH'],
-  'Mathematics': ['MATH', 'CS', 'STAT'],
-  'Physics': ['PHYS', 'MATH'],
-  'Chemistry': ['CHEM', 'MATH', 'PHYS'],
-  'Neuroscience': ['NSC', 'BIOL', 'CHEM'],
-  'Biomedical Engineering': ['BMEN', 'BIOL', 'CHEM', 'MATH'],
+  'Computer Science':      ['CS', 'MATH', 'ECS', 'SE', 'PHYS'],
+  'Software Engineering':  ['SE', 'CS', 'MATH', 'ECS', 'PHYS'],
+  'Computer Engineering':  ['CE', 'CS', 'EE', 'ENGR', 'MATH', 'PHYS', 'STAT'],
+  'Electrical Engineering':['EE', 'ENGR', 'MATH', 'PHYS', 'CHEM'],
+  'Mechanical Engineering':['MECH', 'ENGR', 'MATH', 'PHYS', 'CHEM', 'CS'],
+  'Data Science':          ['CS', 'MATH', 'STAT', 'PHYS'],
+  'Biomedical Engineering':['BMEN', 'BIOL', 'CHEM', 'MATH', 'PHYS'],
+  'Systems Engineering':   ['SYS', 'ECS', 'ENGR', 'MATH', 'CS'],
+  'Cognitive Science':     ['CGS', 'CS', 'PSY', 'NSC', 'BIOL', 'STAT', 'MATH'],
+  'Neuroscience':          ['NSC', 'BIOL', 'CHEM', 'PHYS', 'MATH', 'PSY'],
+  'Psychology':            ['PSY', 'STAT', 'MATH', 'NSC'],
+  'Mathematics':           ['MATH', 'STAT', 'CS', 'PHYS'],
+  'Physics':               ['PHYS', 'MATH', 'CHEM'],
+  'Chemistry':             ['CHEM', 'MATH', 'PHYS', 'BIOL'],
+  'Biology':               ['BIOL', 'CHEM', 'MATH', 'PHYS', 'STAT'],
+  'Biochemistry':          ['BIOL', 'CHEM', 'MATH', 'PHYS', 'STAT'],
+  'Computer Information Systems and Technology': ['ITSS', 'MIS', 'CS', 'MATH', 'STAT', 'BA'],
+  'Business Administration':['BA', 'ACCT', 'FIN', 'MKT', 'OPRE', 'MATH', 'STAT'],
+  'Finance':               ['FIN', 'ACCT', 'BA', 'MATH', 'STAT', 'ECON'],
+  'Economics':             ['ECON', 'MATH', 'STAT'],
+};
+
+// Elective tracks / concentrations per major (UTD 2025-2026 catalog)
+const ELECTIVE_TRACKS = {
+  'Computer Science': [
+    'Undecided',
+    'Artificial Intelligence & Machine Learning',
+    'Cybersecurity & Networks',
+    'Data Science',
+    'Human-Computer Interaction',
+    'Software Engineering',
+    'Systems & Architecture',
+  ],
+  'Software Engineering': [
+    'Undecided',
+    'Enterprise Systems',
+    'Embedded & Real-Time Systems',
+    'Security Engineering',
+  ],
+  'Computer Engineering': [
+    'Undecided',
+    'Computing Systems & Architecture',
+    'Circuits & Devices',
+    'Communications & Signal Processing',
+    'Power Electronics & Robotics',
+    'Software & Machine Learning',
+  ],
+  'Electrical Engineering': [
+    'Undecided',
+    'Circuits',
+    'Computing Systems',
+    'Devices',
+    'Power Electronics & Energy Systems',
+    'Signals & Systems',
+  ],
+  'Cognitive Science': [
+    'Undecided',
+    'Psychology Track',
+    'Neuroscience Track',
+    'Human-Computer Interaction Track',
+    'Intelligent Systems Track',
+  ],
+  'Computer Information Systems and Technology': [
+    'Undecided',
+    'Business Intelligence & Analytics',
+    'Enterprise Systems',
+    'IT Sales Engineering',
+    'IT Innovation & Entrepreneurship',
+    'Cybersecurity Management',
+    'Information Technology & Systems',
+  ],
+  'Mathematics': [
+    'Undecided',
+    'Pure Mathematics',
+    'Statistics',
+    'Applied Mathematics',
+  ],
 };
 
 export default function Onboarding() {
@@ -39,6 +120,8 @@ export default function Onboarding() {
   const [step, setStep] = useState(1); // 1=profile, 2=courses
   const [name, setName] = useState('');
   const [major, setMajor] = useState('Computer Science');
+  const [concentrations, setConcentrations] = useState(['Undecided', 'Undecided']);
+  const [transferInput, setTransferInput] = useState('');
   const [courses, setCourses] = useState([]);
   const [completed, setCompleted] = useState(new Set());
   const [loading, setLoading] = useState(false);
@@ -90,7 +173,19 @@ export default function Onboarding() {
     setSaving(true);
     setError('');
     try {
-      await saveUser({ name: name.trim(), major, completedCourses: [...completed] });
+      const transferCourses = transferInput
+        .split(',')
+        .map(s => normalizeCourseId(s.trim()))
+        .filter(Boolean);
+      const selectedConcentrations = concentrations.filter(c => c && c !== 'Undecided');
+      await saveUser({
+        name: name.trim(),
+        major,
+        concentration: selectedConcentrations[0] || 'Undecided',
+        concentrations: selectedConcentrations,
+        completedCourses: [...completed],
+        transferCourses,
+      });
       localStorage.setItem('cometpath_user', name.trim());
       navigate('/planner');
     } catch (e) {
@@ -140,13 +235,49 @@ export default function Onboarding() {
                 <select
                   className="w-full bg-space-700 border border-blue-900 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
                   value={major}
-                  onChange={e => setMajor(e.target.value)}
+                  onChange={e => { setMajor(e.target.value); setConcentrations(['Undecided', 'Undecided']); }}
                 >
                   {UTD_MAJORS.map(m => (
                     <option key={m} value={m}>{m}</option>
                   ))}
                 </select>
               </div>
+
+              {ELECTIVE_TRACKS[major] && (() => {
+                const rule = CONCENTRATION_RULES[major];
+                const required = rule?.required ?? 0;
+                const numDropdowns = required === 2 ? 2 : 1;
+                return (
+                  <div className="space-y-3">
+                    {Array.from({ length: numDropdowns }, (_, idx) => (
+                      <div key={idx}>
+                        <label className="block text-sm text-blue-300 mb-1">
+                          {numDropdowns === 2 ? `Concentration ${idx + 1}` : 'Elective track / concentration'}
+                          {required === 0 && <span className="text-gray-500 ml-1">(optional)</span>}
+                        </label>
+                        <select
+                          className="w-full bg-space-700 border border-blue-900 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                          value={concentrations[idx] || 'Undecided'}
+                          onChange={e => {
+                            const next = [...concentrations];
+                            next[idx] = e.target.value;
+                            setConcentrations(next);
+                          }}
+                        >
+                          {ELECTIVE_TRACKS[major].map(t => {
+                            const otherIdx = idx === 0 ? 1 : 0;
+                            const otherVal = concentrations[otherIdx];
+                            const disabled = numDropdowns === 2 && t !== 'Undecided' && t === otherVal;
+                            return (
+                              <option key={t} value={t} disabled={disabled}>{t}</option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             {error && <p className="text-red-400 mt-4 text-sm">{error}</p>}

@@ -19,8 +19,9 @@ export default function AdvisorPanel({ user, availableCourses, onHighlight }) {
     try {
       const result = await getRecommendations({
         major: user.major,
+        concentration: user.concentration,
         completedCourses: user.completedCourses,
-        availableCourses: availableCourses.slice(0, 20), // limit payload
+        availableCourses: availableCourses.slice(0, 20),
         gradeData: {},
       });
       setRecs(result.recommendations || []);

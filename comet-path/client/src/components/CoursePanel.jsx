@@ -44,7 +44,7 @@ export default function CoursePanel({ course, onClose, onAddToPlan }) {
     ]).then(([gradesResult, profsResult]) => {
       if (gradesResult.status === 'fulfilled') setGrades(gradesResult.value);
       if (profsResult.status === 'fulfilled') {
-        const profs = profsResult.value?.professors || [];
+        const profs = profsResult.value?.data || [];
         setProfessors(profs);
         if (profs.length >= 2) {
           getProfessorInsight({ courseName: course.name, professors: profs })
@@ -175,12 +175,16 @@ export default function CoursePanel({ course, onClose, onAddToPlan }) {
                       {prof.name}
                     </a>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {prof.avgGpa && (
+                      {prof.avgGpa != null ? (
                         <span className={`font-mono ${prof.avgGpa >= 3.0 ? 'text-green-400' : prof.avgGpa >= 2.5 ? 'text-yellow-400' : 'text-red-400'}`}>
                           {prof.avgGpa.toFixed(2)}
                         </span>
+                      ) : (
+                        <span className="text-gray-600 text-xs">No GPA data</span>
                       )}
-                      <span className="text-gray-500">{prof.sections} sec</span>
+                      {(prof.sections != null) && (
+                        <span className="text-gray-500">{prof.sections} sec</span>
+                      )}
                     </div>
                   </div>
                 ))}

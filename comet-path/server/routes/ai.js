@@ -6,17 +6,17 @@ function getModel() {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY not set');
   const genAI = new GoogleGenerativeAI(key);
-  return genAI.getGenerativeModel({ model: 'gemini-3-pro-preview' });
+  return genAI.getGenerativeModel({ model: 'gemini-3.1-pro-preview' });
 }
 
 // POST /api/ai/recommend
 router.post('/recommend', async (req, res) => {
   try {
-    const { major, completedCourses, availableCourses, gradeData } = req.body;
+    const { major, concentration, completedCourses, availableCourses, gradeData } = req.body;
     const model = getModel();
 
     const prompt = `You are a UTD academic advisor AI. A student has the following profile:
-- Major: ${major}
+- Major: ${major}${concentration && concentration !== 'Undecided' ? `\n- Elective track / concentration: ${concentration}` : ''}
 - Completed courses: ${completedCourses.join(', ')}
 - Courses with prerequisites met (available now): ${availableCourses.map(c => `${c.courseId} (${c.name})`).join(', ')}
 - Grade distribution summary for available courses: ${JSON.stringify(gradeData || {}, null, 2)}

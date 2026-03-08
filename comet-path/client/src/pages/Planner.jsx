@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUser, getCourses, updatePlan } from '../utils/api.js';
 import { buildGraph, normalizeCourseId } from '../utils/graphBuilder.js';
@@ -9,18 +9,26 @@ import SemesterPlan from '../components/SemesterPlan.jsx';
 import WhatIfModal from '../components/WhatIfModal.jsx';
 
 const MAJOR_PREFIXES = {
-  'Computer Science': ['CS', 'MATH', 'ECS', 'SE'],
-  'Software Engineering': ['SE', 'CS', 'MATH', 'ECS'],
-  'Computer Engineering': ['CE', 'CS', 'EE', 'MATH'],
-  'Electrical Engineering': ['EE', 'MATH', 'PHYS'],
-  'Mechanical Engineering': ['MECH', 'MATH', 'PHYS'],
-  'Cognitive Science': ['CGS', 'CS', 'PSYC', 'COMM'],
-  'Information Technology': ['MIS', 'CS', 'MATH'],
-  'Mathematics': ['MATH', 'CS', 'STAT'],
-  'Physics': ['PHYS', 'MATH'],
-  'Chemistry': ['CHEM', 'MATH', 'PHYS'],
-  'Neuroscience': ['NSC', 'BIOL', 'CHEM'],
-  'Biomedical Engineering': ['BMEN', 'BIOL', 'CHEM', 'MATH'],
+  'Computer Science':      ['CS', 'MATH', 'ECS', 'SE', 'PHYS'],
+  'Software Engineering':  ['SE', 'CS', 'MATH', 'ECS', 'PHYS'],
+  'Computer Engineering':  ['CE', 'CS', 'EE', 'ENGR', 'MATH', 'PHYS', 'STAT'],
+  'Electrical Engineering':['EE', 'ENGR', 'MATH', 'PHYS', 'CHEM'],
+  'Mechanical Engineering':['MECH', 'ENGR', 'MATH', 'PHYS', 'CHEM', 'CS'],
+  'Data Science':          ['CS', 'MATH', 'STAT', 'PHYS'],
+  'Biomedical Engineering':['BMEN', 'BIOL', 'CHEM', 'MATH', 'PHYS'],
+  'Systems Engineering':   ['SYS', 'ECS', 'ENGR', 'MATH', 'CS'],
+  'Cognitive Science':     ['CGS', 'CS', 'PSY', 'NSC', 'BIOL', 'STAT', 'MATH'],
+  'Neuroscience':          ['NSC', 'BIOL', 'CHEM', 'PHYS', 'MATH', 'PSY'],
+  'Psychology':            ['PSY', 'STAT', 'MATH', 'NSC'],
+  'Mathematics':           ['MATH', 'STAT', 'CS', 'PHYS'],
+  'Physics':               ['PHYS', 'MATH', 'CHEM'],
+  'Chemistry':             ['CHEM', 'MATH', 'PHYS', 'BIOL'],
+  'Biology':               ['BIOL', 'CHEM', 'MATH', 'PHYS', 'STAT'],
+  'Biochemistry':          ['BIOL', 'CHEM', 'MATH', 'PHYS', 'STAT'],
+  'Computer Information Systems and Technology': ['ITSS', 'MIS', 'CS', 'MATH', 'STAT', 'BA'],
+  'Business Administration':['BA', 'ACCT', 'FIN', 'MKT', 'OPRE', 'MATH', 'STAT'],
+  'Finance':               ['FIN', 'ACCT', 'BA', 'MATH', 'STAT', 'ECON'],
+  'Economics':             ['ECON', 'MATH', 'STAT'],
 };
 
 const DEPT_COLORS = {
@@ -62,11 +70,11 @@ export default function Planner() {
       for (const r of results) {
         if (r.status === 'fulfilled' && r.value?.data) all.push(...r.value.data);
       }
-      // Deduplicate
+      // Deduplicate by courseId (e.g. "CS1337")
       const seen = new Set();
       const courses = all.filter(c => {
-        const id = c._id || c.course_number;
-        if (seen.has(id)) return false;
+        const id = c.courseId;
+        if (!id || seen.has(id)) return false;
         seen.add(id);
         return true;
       });
@@ -185,6 +193,9 @@ export default function Planner() {
           <span className="font-bold text-white text-lg">CometPath</span>
           <span className="text-gray-500 text-sm hidden sm:block">
             {user?.name} • {user?.major}
+            {user?.concentration && user.concentration !== 'Undecided' && (
+              <span className="text-purple-400 ml-1">· {user.concentration}</span>
+            )}
           </span>
         </div>
 
