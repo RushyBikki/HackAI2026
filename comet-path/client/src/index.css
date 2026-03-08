@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-space-900 text-white font-sans;
+  }
+}
+
+/* React Flow overrides */
+.react-flow__background {
+  background-color: #0a0e1a !important;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+/* Pulse glow animation for available nodes */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px 2px rgba(59, 130, 246, 0.5); }
+  50%       { box-shadow: 0 0 20px 6px rgba(59, 130, 246, 0.8); }
+}
+
+.node-available {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Smooth panel slide-in */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);   opacity: 1; }
+}
+
+.panel-slide-in {
+  animation: slide-in-right 0.25s ease-out;
+}
+
+/* Grade bar */
+.grade-bar {
+  @apply h-4 rounded-sm transition-all duration-300;
+}
