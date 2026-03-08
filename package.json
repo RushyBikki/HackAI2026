@@ -1,17 +1,17 @@
 {
   "name": "hackai2026",
   "version": "0.1.0",
-  "description": "Hack AI project 2026",
-  "main": "index.js",
+  "description": "CometPath — UTD AI Degree Planner",
   "scripts": {
-    "dev": "nodemon index.js"
+    "dev": "concurrently --names SERVER,CLIENT --prefix-colors cyan,magenta \"nodemon --cwd comet-path/server index.js\" \"npm run dev --prefix comet-path/client\""
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.14"
   }
 }

@@ -58,19 +58,15 @@ export default function Onboarding() {
           all.push(...r.value.data);
         }
       }
-      // Deduplicate
+      // Deduplicate by courseId (e.g. "CS1337") — set by server normalizeCourse()
       const seen = new Set();
       const deduped = all.filter(c => {
-        const id = c._id || c.course_number;
-        if (seen.has(id)) return false;
+        const id = c.courseId;
+        if (!id || seen.has(id)) return false;
         seen.add(id);
         return true;
       });
-      deduped.sort((a, b) => {
-        const aId = a._id || a.course_number || '';
-        const bId = b._id || b.course_number || '';
-        return aId.localeCompare(bId);
-      });
+      deduped.sort((a, b) => (a.courseId || '').localeCompare(b.courseId || ''));
       setCourses(deduped);
     } catch (e) {
       setError('Could not load courses from Nebula API. Check your server is running.');
@@ -105,22 +101,12 @@ export default function Onboarding() {
   }
 
   const filtered = courses.filter(c => {
-    const id = c._id || c.course_number || '';
-    const title = c.title || c.long_title || '';
-
-    const rawTerm = search.trim().toLowerCase();
-    const normalizedSearch = normalizeCourseId(search);
-    if (!rawTerm && !normalizedSearch) return true;
-
-    const idMatch =
-      rawTerm &&
-      (id.toLowerCase().includes(rawTerm) || title.toLowerCase().includes(rawTerm));
-
-    const normalizedId = normalizeCourseId(id);
-    const normalizedMatch =
-      normalizedSearch && normalizedId.includes(normalizedSearch);
-
-    return Boolean(idMatch || normalizedMatch);
+    if (!search.trim()) return true;
+    const term = search.trim().toLowerCase();
+    return (
+      (c.courseId || '').toLowerCase().includes(term) ||
+      (c.title || '').toLowerCase().includes(term)
+    );
   });
 
   return (
@@ -237,11 +223,10 @@ export default function Onboarding() {
             {!loading && courses.length > 0 && (
               <div className="max-h-96 overflow-y-auto space-y-1 pr-1">
                 {filtered.map(course => {
-                  const id = course._id || course.course_number;
-                  const normalizedId = normalizeCourseId(id);
-                  const title = course.title || course.long_title || '';
-                  const credits = course.credit_hours || course.semester_credit_hours || 3;
-                  const done = completed.has(normalizedId);
+                  const id = course.courseId; // e.g. "CS1337"
+                  const title = course.title || '';
+                  const credits = parseInt(course.credit_hours, 10) || 3;
+                  const done = completed.has(id);
                   return (
                     <label
                       key={id}

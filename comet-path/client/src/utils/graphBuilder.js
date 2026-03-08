@@ -54,37 +54,35 @@ export function buildGraph(courses, completedCourses, plannedCourses = [], grade
   const normalizedCompleted = (completedCourses || []).map(normalizeCourseId);
   const normalizedPlanned = (plannedCourses || []).map(normalizeCourseId);
 
-  // Use normalized IDs for graph connectivity
-  const courseIds = new Set(
-    courses.map(c => normalizeCourseId(c._id || c.course_number || c.id)),
-  );
+  // Server normalizeCourse() already sets courseId = subject_prefix + course_number (e.g. "CS1337")
+  const courseIds = new Set(courses.map(c => c.courseId).filter(Boolean));
 
   for (const course of courses) {
-    const rawId = course._id || course.course_number || course.id;
-    const id = normalizeCourseId(rawId);
-    const prereqStr = course.prerequisites || course.co_or_pre_requisites || '';
+    const id = course.courseId; // e.g. "CS1337"
+    if (!id) continue;
+
+    // enrollment_reqs has human-readable text like "Prerequisite: CS 1337 or CS 1136"
+    // course.prerequisites is a structured JSON object — not parseable by regex
+    const prereqStr = course.enrollment_reqs || '';
     const prereqs = parsePrereqs(prereqStr).filter(p => courseIds.has(p));
     const status = getCourseStatus(id, normalizedCompleted, prereqs, normalizedPlanned);
-    const gradeInfo = gradeMap[id] || gradeMap[rawId] || {};
+    const gradeInfo = gradeMap[id] || {};
 
     nodes.push({
-      // React Flow node id uses normalized ID for consistent search/layout
       id,
       type: 'courseNode',
       data: {
-        // Keep raw Nebula ID for API calls and display
-        courseId: rawId,
-        normalizedId: id,
-        name: course.title || course.long_title || rawId,
-        prefix: id.match(/^[A-Z]+/)?.[0] || 'CS',
-        creditHours: course.credit_hours || course.semester_credit_hours || 3,
+        courseId: id,
+        name: course.title || id,
+        prefix: course.subject_prefix || id.match(/^[A-Z]+/)?.[0] || 'CS',
+        creditHours: parseInt(course.credit_hours, 10) || 3,
         status,
         avgGPA: gradeInfo.avgGPA ?? null,
         topProfessor: gradeInfo.topProfessor ?? null,
         prereqString: prereqStr,
         prereqs,
       },
-      position: { x: 0, y: 0 }, // filled by layoutEngine
+      position: { x: 0, y: 0 },
     });
 
     for (const prereqId of prereqs) {

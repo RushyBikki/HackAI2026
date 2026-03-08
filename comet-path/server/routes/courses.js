@@ -2,8 +2,6 @@ const express = require('express');
 const router = express.Router();
 
 const NEBULA_BASE = 'https://api.utdnebula.com';
-const PAGE_SIZE = Number(process.env.NEBULA_PAGE_SIZE || 100);
-const MAX_COURSES = Math.max(0, parseInt(process.env.NEBULA_COURSE_LIMIT || '0', 10));
 
 async function nebulaFetch(pathAndSearch) {
   const url = `${NEBULA_BASE}${pathAndSearch}`;
@@ -89,39 +87,13 @@ async function resolveCourse(identifier) {
 router.get('/', async (req, res) => {
   try {
     const prefix = String(req.query.prefix || 'CS').toUpperCase().trim();
-    const all = [];
-    let offset = 0;
-
-    while (true) {
-      const path =
-        `/course?subject_prefix=${encodeURIComponent(prefix)}` +
-        `&offset=${offset}&limit=${PAGE_SIZE}`;
-
-      const payload = await nebulaFetch(path);
-      const pageRaw = Array.isArray(payload?.data) ? payload.data : [];
-      const page = pageRaw.map(normalizeCourse);
-
-      all.push(...page);
-
-      if (MAX_COURSES > 0 && all.length >= MAX_COURSES) {
-        return res.json({ status: 200, data: all.slice(0, MAX_COURSES) });
-      }
-
-      if (page.length === 0 || page.length < PAGE_SIZE) {
-        break;
-      }
-
-      offset += page.length;
-    }
-
-    res.json({ status: 200, data: all });
+    // NOTE: Nebula API returns data:null when limit/offset params are passed — use bare subject_prefix only
+    const payload = await nebulaFetch(`/course?subject_prefix=${encodeURIComponent(prefix)}`);
+    const courses = Array.isArray(payload?.data) ? payload.data.map(normalizeCourse) : [];
+    res.json({ status: 200, data: courses });
   } catch (err) {
     console.error('[Course API] List error:', err.message);
-    res.status(502).json({
-      status: 502,
-      error: 'Failed to fetch courses from Nebula API.',
-      detail: err.message,
-    });
+    res.status(502).json({ status: 502, error: 'Failed to fetch courses from Nebula API.', detail: err.message });
   }
 });
 
