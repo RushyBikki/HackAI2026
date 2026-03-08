@@ -20,10 +20,7 @@ function hideOverlay() {
 }
 
 btnStart?.addEventListener("click", () => {
-  showOverlay(
-    "Booting Hack AI 2026...",
-    "Game starting soon."
-  );
+  window.location.href = "http://localhost:5174";
 });
 
 btnOptions?.addEventListener("click", () => {
