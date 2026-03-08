@@ -8,6 +8,22 @@ export default function TranscriptUpload({ onCoursesExtracted }) {
   const [pasteText, setPasteText] = useState('');
   const inputRef = useRef();
 
+  async function transcriptFetch(url, opts) {
+    let res;
+    try {
+      res = await fetch(url, opts);
+    } catch {
+      throw new Error('Cannot reach server — make sure the backend is running on port 3001');
+    }
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch {
+      throw new Error(`Server returned invalid response (status ${res.status}) — is the backend running?`);
+    }
+    if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+    return data;
+  }
+
   // Upload a File object (PDF or TXT) via multipart form
   async function uploadFile(file) {
     if (!file) return;
@@ -16,11 +32,7 @@ export default function TranscriptUpload({ onCoursesExtracted }) {
     try {
       const form = new FormData();
       form.append('transcript', file);
-
-      const res = await fetch('/api/transcript/file', { method: 'POST', body: form });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
-
+      const data = await transcriptFetch('/api/transcript/file', { method: 'POST', body: form });
       const courses = data.courses || [];
       setStatus('done');
       setMessage(`Found ${courses.length} completed courses`);
@@ -37,14 +49,11 @@ export default function TranscriptUpload({ onCoursesExtracted }) {
     setStatus('parsing');
     setMessage('');
     try {
-      const res = await fetch('/api/transcript/text', {
+      const data = await transcriptFetch('/api/transcript/text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: pasteText }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
-
       const courses = data.courses || [];
       setStatus('done');
       setMessage(`Found ${courses.length} completed courses`);
