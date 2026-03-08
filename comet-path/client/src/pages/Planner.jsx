@@ -177,15 +177,19 @@ export default function Planner() {
     if (node) setSelectedCourse(node.data);
   }
 
-  // Apply dept/status filter to nodes
-  const visibleNodes = filter === 'all' ? nodes
-    : filter === 'available' ? nodes.filter(n => n.data.status === 'available' || n.data.status === 'completed')
-    : nodes.filter(n => n.data.prefix === filter);
+  // Completed nodes with no edges are isolated gen-eds / misc credits — they don't
+  // belong in a prerequisite-chain visualization. Remove them from the tree display
+  // (stats bar + course drawer still uses the full `nodes` array).
+  const edgeNodeIds = new Set([...edges.map(e => e.source), ...edges.map(e => e.target)]);
+  const treeNodes = nodes.filter(n => n.data.status !== 'completed' || edgeNodeIds.has(n.id));
 
-  const visibleEdges = filter === 'all' ? edges
-    : edges.filter(e =>
-        visibleNodes.some(n => n.id === e.source) && visibleNodes.some(n => n.id === e.target)
-      );
+  // Apply dept/status filter to nodes
+  const visibleNodes = filter === 'all' ? treeNodes
+    : filter === 'available' ? treeNodes.filter(n => n.data.status === 'available' || n.data.status === 'completed')
+    : treeNodes.filter(n => n.data.prefix === filter);
+
+  const visibleNodeIds = new Set(visibleNodes.map(n => n.id));
+  const visibleEdges = edges.filter(e => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target));
 
   const totalCompleted = user?.completedCourses?.length || 0;
   const totalPlanned = (user?.plannedSemesters || []).flatMap(s => s.courses).length;

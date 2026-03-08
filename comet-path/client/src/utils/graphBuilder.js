@@ -128,18 +128,24 @@ export function buildGraph(courses, completedCourses, plannedCourses = [], grade
   }
 
   // Add stub nodes for completed/planned courses not in the fetched course list
-  // (e.g. Texas Core gen-eds, cross-listed courses, or transfer credits)
+  // (e.g. Texas Core gen-eds, cross-listed courses, or transfer credits).
+  // Stubs give dagre something to anchor edges to when a gen-ed is listed as a prereq.
+  const edgeSourceIds = new Set(edges.map(e => e.source));
   const missingCompleted = normalizedCompleted.filter(id => !courseIds.has(id));
-  const missingPlanned = normalizedPlanned.filter(id => !courseIds.has(id));
+  const missingPlanned   = normalizedPlanned.filter(id => !courseIds.has(id));
   for (const id of [...missingCompleted, ...missingPlanned]) {
     const status = normalizedCompleted.includes(id) ? 'completed' : 'planned';
     const prefix = id.match(/^[A-Z]+/)?.[0] || 'OTHER';
+    // Only create a stub if it already has an outgoing edge (it's actually a prereq
+    // for something in the fetched course list) — avoids flooding rank 0 with
+    // nameless "HONS1310", "LIT1301" nodes that Nebula doesn't know about.
+    if (status === 'completed' && !edgeSourceIds.has(id)) continue;
     nodes.push({
       id,
       type: 'courseNode',
       data: {
         courseId: id,
-        name: id,          // no title available — just show the ID
+        name: id,
         prefix,
         creditHours: 3,
         status,
