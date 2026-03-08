@@ -8,125 +8,239 @@ import { CONCENTRATION_RULES } from '../utils/degreeData.js';
 // UTD 2025-2026 catalog — all degree programs
 const UTD_MAJORS = [
   // ECS
-  'Computer Science',
-  'Software Engineering',
-  'Computer Engineering',
-  'Electrical Engineering',
-  'Mechanical Engineering',
-  'Data Science',
-  'Biomedical Engineering',
-  'Systems Engineering',
-  // BBS
-  'Cognitive Science',
-  'Neuroscience',
-  'Psychology',
-  // NSM
-  'Mathematics',
-  'Physics',
-  'Chemistry',
-  'Biology',
-  'Biochemistry',
-  // JSOM
-  'Computer Information Systems and Technology',
-  'Business Administration',
-  'Finance',
-  // EPPS
-  'Economics',
+'Biomedical Engineering',
+'Computer Engineering',
+'Computer Science',
+'Data Science',
+'Electrical Engineering',
+'Mechanical Engineering',
+'Software Engineering',
+
+// BBS
+'Child Learning and Development',
+'Cognitive Science',
+'Neuroscience',
+'Psychology',
+'Speech, Language, and Hearing Sciences',
+
+// NSM
+'Actuarial Science',
+'Biochemistry',
+'Biology',
+'Chemistry',
+'Geosciences',
+'Mathematics',
+'Molecular Biology',
+'Physics',
+
+// JSOM
+'Accounting',
+'Business Administration',
+'Business Analytics and Artificial Intelligence',
+'Computer Information Systems and Technology',
+'Finance',
+'Global Business',
+'Healthcare Management',
+'Human Resource Management',
+'Marketing',
+'Supply Chain Management and Analytics',
+
+// EPPS
+'Criminology',
+'Economics',
+'Geospatial Information Sciences',
+'International Political Economy',
+'Political Science',
+'Public Affairs',
+'Public Health',
+'Public Policy',
+'Sociology',
+
+// AHT
+'Animation and Games',
+'Arts, Technology, and Emerging Communication',
+'History',
+'Latin American Studies',
+'Literature',
+'Philosophy',
+'Visual and Performing Arts',
+
+// IS
+'American Studies',
+'Education',
+'Healthcare Studies',
+'Interdisciplinary Studies'
 ];
 
 // Course prefixes needed per major to pull from Nebula API
 const MAJOR_PREFIXES = {
-  'Computer Science':      ['CS', 'MATH', 'ECS', 'SE', 'PHYS'],
-  'Software Engineering':  ['SE', 'CS', 'MATH', 'ECS', 'PHYS'],
+  // ECS: Erik Jonsson School of Engineering and Computer Science
+  'Computer Science':      ['CS', 'MATH', 'ECS', 'SE', 'PHYS', 'STAT'],
+  'Software Engineering':  ['SE', 'CS', 'MATH', 'ECS', 'PHYS', 'STAT'],
   'Computer Engineering':  ['CE', 'CS', 'EE', 'ENGR', 'MATH', 'PHYS', 'STAT'],
-  'Electrical Engineering':['EE', 'ENGR', 'MATH', 'PHYS', 'CHEM'],
+  'Electrical Engineering':['EE', 'ENGR', 'MATH', 'PHYS', 'CHEM', 'STAT'],
   'Mechanical Engineering':['MECH', 'ENGR', 'MATH', 'PHYS', 'CHEM', 'CS'],
-  'Data Science':          ['CS', 'MATH', 'STAT', 'PHYS'],
-  'Biomedical Engineering':['BMEN', 'BIOL', 'CHEM', 'MATH', 'PHYS'],
-  'Systems Engineering':   ['SYS', 'ECS', 'ENGR', 'MATH', 'CS'],
+  'Data Science':          ['CS', 'MATH', 'STAT', 'PHYS', 'EPPS'],
+  'Biomedical Engineering':['BMEN', 'BIOL', 'CHEM', 'MATH', 'PHYS', 'ENGR'],
+  'Systems Engineering':   ['SYSM', 'ECS', 'ENGR', 'MATH', 'CS', 'PHYS', 'STAT'],
+
+  // BBS: School of Behavioral and Brain Sciences
   'Cognitive Science':     ['CGS', 'CS', 'PSY', 'NSC', 'BIOL', 'STAT', 'MATH'],
   'Neuroscience':          ['NSC', 'BIOL', 'CHEM', 'PHYS', 'MATH', 'PSY'],
-  'Psychology':            ['PSY', 'STAT', 'MATH', 'NSC'],
+  'Psychology':            ['PSY', 'STAT', 'MATH', 'NSC', 'CLDP'],
+  'Child Learning and Development': ['CLDP', 'PSY', 'SOC', 'STAT'],
+  'Speech, Language, and Hearing Sciences': ['SLHS', 'PSY', 'BIOL', 'STAT', 'CGS'],
+
+  // NSM: School of Natural Sciences and Mathematics
   'Mathematics':           ['MATH', 'STAT', 'CS', 'PHYS'],
   'Physics':               ['PHYS', 'MATH', 'CHEM'],
   'Chemistry':             ['CHEM', 'MATH', 'PHYS', 'BIOL'],
   'Biology':               ['BIOL', 'CHEM', 'MATH', 'PHYS', 'STAT'],
   'Biochemistry':          ['BIOL', 'CHEM', 'MATH', 'PHYS', 'STAT'],
-  'Computer Information Systems and Technology': ['ITSS', 'MIS', 'CS', 'MATH', 'STAT', 'BA'],
-  'Business Administration':['BA', 'ACCT', 'FIN', 'MKT', 'OPRE', 'MATH', 'STAT'],
-  'Finance':               ['FIN', 'ACCT', 'BA', 'MATH', 'STAT', 'ECON'],
-  'Economics':             ['ECON', 'MATH', 'STAT'],
+  'Molecular Biology':     ['BIOL', 'CHEM', 'MATH', 'PHYS', 'STAT'],
+  'Actuarial Science':     ['ACTS', 'MATH', 'STAT', 'FIN', 'ECON', 'MECO'],
+  'Geosciences':           ['GEOS', 'CHEM', 'PHYS', 'MATH', 'STAT'],
+
+  // JSOM: Naveen Jindal School of Management
+  'Accounting':            ['ACCT', 'BA', 'BCOM', 'FIN', 'OPRE', 'MATH', 'STAT', 'BLAW'],
+  'Business Administration':['BA', 'ACCT', 'FIN', 'MKT', 'OPRE', 'MATH', 'STAT', 'BCOM', 'IMS'],
+  'Business Analytics and Artificial Intelligence': ['BUAN', 'OPRE', 'ITSS', 'MATH', 'STAT', 'BA', 'CS'],
+  'Computer Information Systems and Technology': ['ITSS', 'MIS', 'CS', 'MATH', 'STAT', 'BA', 'BCOM'],
+  'Finance':               ['FIN', 'ACCT', 'BA', 'MATH', 'STAT', 'ECON', 'BCOM'],
+  'Global Business':       ['IMS', 'BA', 'BCOM', 'MKT', 'FIN', 'ACCT', 'ECON', 'MATH', 'STAT'],
+  'Healthcare Management': ['HMGT', 'BA', 'ACCT', 'FIN', 'OPRE', 'BCOM', 'BIOL', 'STAT'],
+  'Human Resource Management': ['OBHR', 'BA', 'ACCT', 'BCOM', 'BLAW', 'MATH', 'STAT'],
+  'Marketing':             ['MKT', 'BA', 'BCOM', 'ACCT', 'OPRE', 'MATH', 'STAT'],
+  'Supply Chain Management and Analytics': ['OPRE', 'BA', 'ACCT', 'BCOM', 'MATH', 'STAT', 'ITSS'],
+
+  // EPPS: School of Economic, Political and Policy Sciences
+  'Economics':             ['ECON', 'MATH', 'STAT', 'EPPS', 'FIN'],
+  'Criminology':           ['CRIM', 'SOC', 'PSCI', 'EPPS', 'PSY', 'STAT'],
+  'Geospatial Information Sciences': ['GISC', 'EPPS', 'CS', 'GEOS', 'MATH', 'STAT'],
+  'International Political Economy': ['IPE', 'PSCI', 'ECON', 'EPPS', 'SOC', 'STAT'],
+  'Political Science':     ['PSCI', 'EPPS', 'ECON', 'SOC', 'STAT'],
+  'Public Affairs':        ['PA', 'EPPS', 'PSCI', 'SOC', 'ECON', 'STAT'],
+  'Public Health':         ['PH', 'HLTH', 'BIOL', 'STAT', 'SOC', 'EPPS', 'ECON'],
+  'Public Policy':         ['PPOL', 'EPPS', 'ECON', 'PSCI', 'STAT'],
+  'Sociology':             ['SOC', 'EPPS', 'PSY', 'CRIM', 'STAT'],
+
+  // AHT: Harry W. Bass Jr. School of Arts, Humanities, and Technology
+  'Animation and Games':   ['ATEC', 'ATCM', 'CS', 'ARTS'],
+  'Arts, Technology, and Emerging Communication': ['ATEC', 'ATCM', 'ARTS', 'CS', 'COMM'],
+  'History':               ['HIST', 'ARHM', 'PHIL', 'LIT'],
+  'Latin American Studies':['LATS', 'HIST', 'LIT', 'SPAN', 'PSCI'],
+  'Literature':            ['LIT', 'ARHM', 'ENGL', 'SPAN', 'FREN', 'HIST', 'PHIL'],
+  'Philosophy':            ['PHIL', 'ARHM', 'HIST', 'LIT', 'PSCI'],
+  'Visual and Performing Arts': ['VPAS', 'ARTS', 'DANC', 'FILM', 'MUSI', 'THEA'],
+
+  // IS: School of Interdisciplinary Studies
+  'American Studies':      ['AMS', 'HIST', 'LIT', 'SOC', 'PSCI'],
+  'Education':             ['ED', 'EDMS', 'EDHS', 'MATH', 'SCI', 'HIST', 'PSY'],
+  'Healthcare Studies':    ['HLTH', 'BIOL', 'CHEM', 'PHYS', 'MATH', 'PSY', 'STAT'],
+  'Interdisciplinary Studies': ['IS', 'BA', 'COM', 'PSY', 'SOC', 'HIST', 'ED'],
 };
 
 // Elective tracks / concentrations per major (UTD 2025-2026 catalog)
 const ELECTIVE_TRACKS = {
-  'Computer Science': [
+  
+  'Business Administration': [
     'Undecided',
-    'Artificial Intelligence & Machine Learning',
-    'Cybersecurity & Networks',
+    'General Business',
+    'Business Economics',
+    'Energy Management',
+    'Innovation and Entrepreneurship',
+    'Real Estate Finance',
+    'Risk Management and Insurance Technology',
+    'Professional Sales',
+  ],
+  'Business Analytics and Artificial Intelligence': [
+    'Undecided',
     'Data Science',
-    'Human-Computer Interaction',
-    'Software Engineering',
-    'Systems & Architecture',
+    'Marketing Analytics',
+    'Finance and Risk Analytics',
+    'Information Technology',
+    'Operations and Supply Chain Management',
   ],
-  'Software Engineering': [
+  'Computer Information Systems and Technology': [
     'Undecided',
+    'Business Intelligence and Analytics',
     'Enterprise Systems',
-    'Embedded & Real-Time Systems',
-    'Security Engineering',
+    'IT Sales Engineering',
+    'IT Innovation and Entrepreneurship',
+    'Cybersecurity Management',
+    'Information Technology and Systems',
   ],
-  'Computer Engineering': [
+  'Finance': [
     'Undecided',
-    'Computing Systems & Architecture',
-    'Circuits & Devices',
-    'Communications & Signal Processing',
-    'Power Electronics & Robotics',
-    'Software & Machine Learning',
+    'Corporate Finance',
+    'Investment',
+    'FinTech',
+    'Real Estate Finance',
+    'Risk Management and Insurance Technology',
+  ],
+  'Marketing': [
+    'Undecided',
+    'Marketing Management',
+    'Digital Marketing',
+    'Marketing Analytics',
+    'Professional Sales',
+    'Retailing Innovation',
+  ],
+  'Supply Chain Management and Analytics': [
+    'Undecided',
+    'Digital Supply Chain Management',
+    'Project Management and Leadership',
+    'Analytics',
+    'Global Supply Chains and Strategy',
+  ],
+  'Global Business': [
+    'Undecided',
+    'Global Business and Marketing',
+    'Global Business and Finance',
+    'Global Business and Supply Chain Management',
+    'Global Business and Human Resource Management',
+    'Global Business and International Political Economy',
   ],
   'Electrical Engineering': [
     'Undecided',
     'Circuits',
     'Computing Systems',
     'Devices',
-    'Power Electronics & Energy Systems',
-    'Signals & Systems',
+    'Power Electronics and Energy Systems',
+    'Signals and Systems',
   ],
   'Cognitive Science': [
     'Undecided',
-    'Psychology Track',
-    'Neuroscience Track',
-    'Human-Computer Interaction Track',
-    'Intelligent Systems Track',
-  ],
-  'Computer Information Systems and Technology': [
-    'Undecided',
-    'Business Intelligence & Analytics',
-    'Enterprise Systems',
-    'IT Sales Engineering',
-    'IT Innovation & Entrepreneurship',
-    'Cybersecurity Management',
-    'Information Technology & Systems',
+    'Psychology',
+    'Neuroscience',
+    'Human-Computer Interaction',
+    'Intelligent Systems',
   ],
   'Mathematics': [
     'Undecided',
-    'Pure Mathematics',
-    'Statistics',
-    'Applied Mathematics',
+    'Applied Mathematics Specialization',
+    'Pure Mathematics Specialization',
+    'Statistics Specialization',
   ],
-  'Neuroscience': [
+  'Arts, Technology, and Emerging Communication': [
     'Undecided',
-    'Medical Neuroscience Track',
-    'Research Neuroscience Track',
-    'Industrial Neuroscience Track',
+    'Animation and Games',
+    'Critical Media Studies',
+    'Design',
+    'Emerging Media Art',
   ],
-  'Finance': [
+  'Visual and Performing Arts': [
     'Undecided',
-    'Investment',
-    'Financial Management',
-    'FinTech',
-    'Real Estate Finance',
-    'Risk Management and Insurance Technology',
+    'Art History',
+    'Communication Studies',
+    'Dance',
+    'Film',
+    'Music',
+    'Photo-Video-Digital',
+    'Theatre',
+    'Visual Arts',
   ],
+
 };
 
 export default function Onboarding() {
@@ -138,7 +252,6 @@ export default function Onboarding() {
   const [transferInput, setTransferInput] = useState('');
   const [courses, setCourses] = useState([]);
   const [completed, setCompleted] = useState(new Set());
-  const [geminiKey, setGeminiKey] = useState(localStorage.getItem('cometpath_gemini_key') || '');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -295,22 +408,6 @@ export default function Onboarding() {
               })()}
             </div>
 
-              <div>
-                <label className="block text-sm text-blue-300 mb-1">
-                  Gemini API key <span className="text-gray-500">(optional — enables AI advisor)</span>
-                </label>
-                <input
-                  className="w-full bg-space-700 border border-blue-900 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 font-mono text-sm"
-                  placeholder="AIza..."
-                  type="password"
-                  value={geminiKey}
-                  onChange={e => setGeminiKey(e.target.value)}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Get a free key at <span className="text-blue-400">aistudio.google.com</span>. Stored only in this browser.
-                </p>
-              </div>
-
             {error && <p className="text-red-400 mt-4 text-sm">{error}</p>}
 
             <button
@@ -318,7 +415,6 @@ export default function Onboarding() {
               onClick={() => {
                 if (!name.trim()) { setError('Please enter your name.'); return; }
                 setError('');
-                if (geminiKey.trim()) localStorage.setItem('cometpath_gemini_key', geminiKey.trim());
                 setStep(2);
                 loadCourses();
               }}
@@ -330,18 +426,9 @@ export default function Onboarding() {
 
         {step === 2 && (
           <>
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-6">
               <button onClick={() => setStep(1)} className="text-blue-400 hover:text-white text-sm">← Back</button>
               <h2 className="text-2xl font-semibold text-white">Mark completed courses</h2>
-            </div>
-
-            {/* Prominent instructions */}
-            <div className="mb-4 bg-blue-950/40 border border-blue-700/40 rounded-xl p-4">
-              <p className="text-sm text-white font-medium mb-1">How to fill this in:</p>
-              <ol className="text-sm text-blue-200 space-y-1 list-decimal list-inside">
-                <li><span className="text-yellow-300 font-semibold">Option A — Upload transcript:</span> Drop your UTD unofficial transcript PDF below to auto-fill all completed courses instantly.</li>
-                <li><span className="text-yellow-300 font-semibold">Option B — Select manually:</span> Scroll the list below and check off each course you've finished.</li>
-              </ol>
             </div>
 
             <p className="text-blue-300 text-sm mb-4">
@@ -352,7 +439,7 @@ export default function Onboarding() {
             {/* Transcript upload shortcut */}
             <div className="mb-4 bg-space-900/60 border border-blue-900/40 rounded-xl p-4">
               <p className="text-xs text-blue-300 font-medium mb-2">
-                Option A — Upload UTD transcript (PDF or paste text)
+                Auto-import from UTD transcript
               </p>
               <TranscriptUpload
                 onCoursesExtracted={(ids) => {
@@ -365,22 +452,9 @@ export default function Onboarding() {
               />
             </div>
 
-            {/* Transfer credits */}
-            <div className="mb-4 bg-space-900/60 border border-green-900/40 rounded-xl p-4">
-              <p className="text-xs text-green-300 font-medium mb-1">Transfer credits</p>
-              <p className="text-xs text-gray-500 mb-2">Comma-separated course IDs taken at another institution (e.g. MATH2413, PHYS2325)</p>
-              <input
-                className="w-full bg-space-700 border border-green-900/60 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-600"
-                placeholder="MATH2413, PHYS2325, ..."
-                value={transferInput}
-                onChange={e => setTransferInput(e.target.value)}
-              />
-            </div>
-
-            <p className="text-xs text-blue-300 font-medium mb-2">Option B — Select courses manually</p>
             <input
               className="w-full bg-space-700 border border-blue-900 rounded-lg px-4 py-2 text-white mb-4 focus:outline-none focus:border-blue-500"
-              placeholder="Search courses by ID or name..."
+              placeholder="Search courses..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -405,43 +479,34 @@ export default function Onboarding() {
               </div>
             )}
 
-            {!loading && courses.length > 0 && (() => {
-              const transferIds = new Set(
-                transferInput.split(',').map(s => normalizeCourseId(s.trim())).filter(Boolean)
-              );
-              return (
-                <div className="max-h-96 overflow-y-auto space-y-1 pr-1">
-                  {filtered.map(course => {
-                    const id = course.courseId;
-                    const title = course.title || '';
-                    const credits = parseInt(course.credit_hours, 10) || 3;
-                    const done = completed.has(id);
-                    const isTransfer = transferIds.has(id);
-                    return (
-                      <label
-                        key={id}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
-                          isTransfer ? 'bg-green-950/40 border border-green-800/50'
-                          : done ? 'bg-green-900/30 border border-green-700/50'
-                          : 'hover:bg-space-700 border border-transparent'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={done}
-                          onChange={() => toggleCourse(id)}
-                          className="w-4 h-4 accent-green-500 flex-shrink-0"
-                        />
-                        <span className="text-blue-300 font-mono text-sm w-20 flex-shrink-0">{id}</span>
-                        <span className="text-white text-sm flex-1 truncate">{title}</span>
-                        {isTransfer && <span className="text-green-400 text-xs font-bold bg-green-900/40 px-1.5 py-0.5 rounded flex-shrink-0">T</span>}
-                        <span className="text-gray-500 text-xs flex-shrink-0">{credits} cr</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              );
-            })()}
+            {!loading && courses.length > 0 && (
+              <div className="max-h-96 overflow-y-auto space-y-1 pr-1">
+                {filtered.map(course => {
+                  const id = course.courseId; // e.g. "CS1337"
+                  const title = course.title || '';
+                  const credits = parseInt(course.credit_hours, 10) || 3;
+                  const done = completed.has(id);
+                  return (
+                    <label
+                      key={id}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                        done ? 'bg-green-900/30 border border-green-700/50' : 'hover:bg-space-700 border border-transparent'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={done}
+                        onChange={() => toggleCourse(id)}
+                        className="w-4 h-4 accent-green-500 flex-shrink-0"
+                      />
+                      <span className="text-blue-300 font-mono text-sm w-20 flex-shrink-0">{id}</span>
+                      <span className="text-white text-sm flex-1 truncate">{title}</span>
+                      <span className="text-gray-500 text-xs flex-shrink-0">{credits} cr</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
 
             {error && <p className="text-red-400 mt-3 text-sm">{error}</p>}
 

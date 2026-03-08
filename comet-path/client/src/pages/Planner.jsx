@@ -10,26 +10,70 @@ import SemesterPlan from '../components/SemesterPlan.jsx';
 import WhatIfModal from '../components/WhatIfModal.jsx';
 
 const MAJOR_PREFIXES = {
-  'Computer Science':      ['CS', 'MATH', 'ECS', 'SE', 'PHYS'],
-  'Software Engineering':  ['SE', 'CS', 'MATH', 'ECS', 'PHYS'],
+  // ECS: Erik Jonsson School of Engineering and Computer Science
+  'Computer Science':      ['CS', 'MATH', 'ECS', 'SE', 'PHYS', 'STAT'],
+  'Software Engineering':  ['SE', 'CS', 'MATH', 'ECS', 'PHYS', 'STAT'],
   'Computer Engineering':  ['CE', 'CS', 'EE', 'ENGR', 'MATH', 'PHYS', 'STAT'],
-  'Electrical Engineering':['EE', 'ENGR', 'MATH', 'PHYS', 'CHEM'],
+  'Electrical Engineering':['EE', 'ENGR', 'MATH', 'PHYS', 'CHEM', 'STAT'],
   'Mechanical Engineering':['MECH', 'ENGR', 'MATH', 'PHYS', 'CHEM', 'CS'],
-  'Data Science':          ['CS', 'MATH', 'STAT', 'PHYS'],
-  'Biomedical Engineering':['BMEN', 'BIOL', 'CHEM', 'MATH', 'PHYS'],
-  'Systems Engineering':   ['SYS', 'ECS', 'ENGR', 'MATH', 'CS'],
+  'Data Science':          ['CS', 'MATH', 'STAT', 'PHYS', 'EPPS'],
+  'Biomedical Engineering':['BMEN', 'BIOL', 'CHEM', 'MATH', 'PHYS', 'ENGR'],
+  'Systems Engineering':   ['SYSM', 'ECS', 'ENGR', 'MATH', 'CS', 'PHYS', 'STAT'],
+
+  // BBS: School of Behavioral and Brain Sciences
   'Cognitive Science':     ['CGS', 'CS', 'PSY', 'NSC', 'BIOL', 'STAT', 'MATH'],
   'Neuroscience':          ['NSC', 'BIOL', 'CHEM', 'PHYS', 'MATH', 'PSY'],
-  'Psychology':            ['PSY', 'STAT', 'MATH', 'NSC'],
+  'Psychology':            ['PSY', 'STAT', 'MATH', 'NSC', 'CLDP'],
+  'Child Learning and Development': ['CLDP', 'PSY', 'SOC', 'STAT'],
+  'Speech, Language, and Hearing Sciences': ['SLHS', 'PSY', 'BIOL', 'STAT', 'CGS'],
+
+  // NSM: School of Natural Sciences and Mathematics
   'Mathematics':           ['MATH', 'STAT', 'CS', 'PHYS'],
   'Physics':               ['PHYS', 'MATH', 'CHEM'],
   'Chemistry':             ['CHEM', 'MATH', 'PHYS', 'BIOL'],
   'Biology':               ['BIOL', 'CHEM', 'MATH', 'PHYS', 'STAT'],
   'Biochemistry':          ['BIOL', 'CHEM', 'MATH', 'PHYS', 'STAT'],
-  'Computer Information Systems and Technology': ['ITSS', 'MIS', 'CS', 'MATH', 'STAT', 'BA'],
-  'Business Administration':['BA', 'ACCT', 'FIN', 'MKT', 'OPRE', 'MATH', 'STAT'],
-  'Finance':               ['FIN', 'ACCT', 'BA', 'MATH', 'STAT', 'ECON'],
-  'Economics':             ['ECON', 'MATH', 'STAT'],
+  'Molecular Biology':     ['BIOL', 'CHEM', 'MATH', 'PHYS', 'STAT'],
+  'Actuarial Science':     ['ACTS', 'MATH', 'STAT', 'FIN', 'ECON', 'MECO'],
+  'Geosciences':           ['GEOS', 'CHEM', 'PHYS', 'MATH', 'STAT'],
+
+  // JSOM: Naveen Jindal School of Management
+  'Accounting':            ['ACCT', 'BA', 'BCOM', 'FIN', 'OPRE', 'MATH', 'STAT', 'BLAW'],
+  'Business Administration':['BA', 'ACCT', 'FIN', 'MKT', 'OPRE', 'MATH', 'STAT', 'BCOM', 'IMS'],
+  'Business Analytics and Artificial Intelligence': ['BUAN', 'OPRE', 'ITSS', 'MATH', 'STAT', 'BA', 'CS'],
+  'Computer Information Systems and Technology': ['ITSS', 'MIS', 'CS', 'MATH', 'STAT', 'BA', 'BCOM'],
+  'Finance':               ['FIN', 'ACCT', 'BA', 'MATH', 'STAT', 'ECON', 'BCOM'],
+  'Global Business':       ['IMS', 'BA', 'BCOM', 'MKT', 'FIN', 'ACCT', 'ECON', 'MATH', 'STAT'],
+  'Healthcare Management': ['HMGT', 'BA', 'ACCT', 'FIN', 'OPRE', 'BCOM', 'BIOL', 'STAT'],
+  'Human Resource Management': ['OBHR', 'BA', 'ACCT', 'BCOM', 'BLAW', 'MATH', 'STAT'],
+  'Marketing':             ['MKT', 'BA', 'BCOM', 'ACCT', 'OPRE', 'MATH', 'STAT'],
+  'Supply Chain Management and Analytics': ['OPRE', 'BA', 'ACCT', 'BCOM', 'MATH', 'STAT', 'ITSS'],
+
+  // EPPS: School of Economic, Political and Policy Sciences
+  'Economics':             ['ECON', 'MATH', 'STAT', 'EPPS', 'FIN'],
+  'Criminology':           ['CRIM', 'SOC', 'PSCI', 'EPPS', 'PSY', 'STAT'],
+  'Geospatial Information Sciences': ['GISC', 'EPPS', 'CS', 'GEOS', 'MATH', 'STAT'],
+  'International Political Economy': ['IPE', 'PSCI', 'ECON', 'EPPS', 'SOC', 'STAT'],
+  'Political Science':     ['PSCI', 'EPPS', 'ECON', 'SOC', 'STAT'],
+  'Public Affairs':        ['PA', 'EPPS', 'PSCI', 'SOC', 'ECON', 'STAT'],
+  'Public Health':         ['PH', 'HLTH', 'BIOL', 'STAT', 'SOC', 'EPPS', 'ECON'],
+  'Public Policy':         ['PPOL', 'EPPS', 'ECON', 'PSCI', 'STAT'],
+  'Sociology':             ['SOC', 'EPPS', 'PSY', 'CRIM', 'STAT'],
+
+  // AHT: Harry W. Bass Jr. School of Arts, Humanities, and Technology
+  'Animation and Games':   ['ATEC', 'ATCM', 'CS', 'ARTS'],
+  'Arts, Technology, and Emerging Communication': ['ATEC', 'ATCM', 'ARTS', 'CS', 'COMM'],
+  'History':               ['HIST', 'ARHM', 'PHIL', 'LIT'],
+  'Latin American Studies':['LATS', 'HIST', 'LIT', 'SPAN', 'PSCI'],
+  'Literature':            ['LIT', 'ARHM', 'ENGL', 'SPAN', 'FREN', 'HIST', 'PHIL'],
+  'Philosophy':            ['PHIL', 'ARHM', 'HIST', 'LIT', 'PSCI'],
+  'Visual and Performing Arts': ['VPAS', 'ARTS', 'DANC', 'FILM', 'MUSI', 'THEA'],
+
+  // IS: School of Interdisciplinary Studies
+  'American Studies':      ['AMS', 'HIST', 'LIT', 'SOC', 'PSCI'],
+  'Education':             ['ED', 'EDMS', 'EDHS', 'MATH', 'SCI', 'HIST', 'PSY'],
+  'Healthcare Studies':    ['HLTH', 'BIOL', 'CHEM', 'PHYS', 'MATH', 'PSY', 'STAT'],
+  'Interdisciplinary Studies': ['IS', 'BA', 'COM', 'PSY', 'SOC', 'HIST', 'ED'],
 };
 
 
