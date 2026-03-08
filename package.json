@@ -2,11 +2,16 @@
   "name": "hackai2026",
   "version": "0.1.0",
   "description": "Hack AI project 2026",
-  "main": "main.js",
+  "main": "index.js",
   "scripts": {
-    "dev": "http-server . -p 3000 -o"
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
   },
   "devDependencies": {
-    "http-server": "^14.1.1"
+    "nodemon": "^3.1.4"
   }
 }
