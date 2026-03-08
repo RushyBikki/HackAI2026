@@ -1,0 +1,6 @@
+# Environment files (keep API keys and secrets out of git)
+comet-path/server/.env
+comet-path/server/.env.local
+*.env
+*.env.local
+
