@@ -1,8 +1,13 @@
 const BASE = '/api';
 
 async function request(path, opts = {}) {
+  const extraHeaders = {};
+  if (path.startsWith('/ai/')) {
+    const key = localStorage.getItem('cometpath_gemini_key');
+    if (key) extraHeaders['x-gemini-key'] = key;
+  }
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...opts.headers },
+    headers: { 'Content-Type': 'application/json', ...extraHeaders, ...opts.headers },
     ...opts,
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });

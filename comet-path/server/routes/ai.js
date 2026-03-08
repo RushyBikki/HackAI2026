@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-function getModel() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error('GEMINI_API_KEY not set');
+function getModel(req) {
+  const key = req?.headers?.['x-gemini-key'] || process.env.GEMINI_API_KEY;
+  if (!key) throw new Error('No Gemini API key configured. Add one in the setup page or set GEMINI_API_KEY in .env');
   const genAI = new GoogleGenerativeAI(key);
   return genAI.getGenerativeModel({ model: 'gemini-3.1-pro-preview' });
 }
@@ -13,7 +13,7 @@ function getModel() {
 router.post('/recommend', async (req, res) => {
   try {
     const { major, concentration, completedCourses, availableCourses, gradeData } = req.body;
-    const model = getModel();
+    const model = getModel(req);
 
     const prompt = `You are a UTD academic advisor AI. A student has the following profile:
 - Major: ${major}${concentration && concentration !== 'Undecided' ? `\n- Elective track / concentration: ${concentration}` : ''}
@@ -47,7 +47,7 @@ Return ONLY a valid JSON array, no markdown, no code blocks:
 router.post('/whatif', async (req, res) => {
   try {
     const { currentMajor, targetMajor, completedCourses, currentRequirements, targetRequirements } = req.body;
-    const model = getModel();
+    const model = getModel(req);
 
     const keptCourses = completedCourses.filter(c =>
       targetRequirements?.some(r => r === c || r.includes(c))
@@ -84,13 +84,7 @@ Keep it under 200 words, conversational, helpful.`;
     });
   } catch (err) {
     console.error('[AI/whatif]', err);
-    const msg = err && err.message ? String(err.message) : '';
-    const isConfig = msg.includes('GEMINI_API_KEY') || msg.toLowerCase().includes('api key');
-    res.status(500).json({
-      error: isConfig
-        ? 'Gemini API key not configured or invalid.'
-        : 'Failed to generate What-If analysis.',
-    });
+    res.status(500).json({ error: err?.message || 'Failed to generate What-If analysis.' });
   }
 });
 
@@ -98,7 +92,7 @@ Keep it under 200 words, conversational, helpful.`;
 router.post('/professor-insight', async (req, res) => {
   try {
     const { courseName, professors } = req.body;
-    const model = getModel();
+    const model = getModel(req);
 
     const prompt = `You are a UTD advisor. Compare these professors for ${courseName} based on grade data:
 ${professors.map(p => `- ${p.name}: avg GPA ${p.avgGpa}, ${p.sections} sections`).join('\n')}
@@ -109,13 +103,7 @@ Write 1-2 sentences comparing them for a student deciding who to take. Be direct
     res.json({ insight: result.response.text().trim() });
   } catch (err) {
     console.error('[AI/professor-insight]', err);
-    const msg = err && err.message ? String(err.message) : '';
-    const isConfig = msg.includes('GEMINI_API_KEY') || msg.toLowerCase().includes('api key');
-    res.status(500).json({
-      error: isConfig
-        ? 'Gemini API key not configured or invalid.'
-        : 'Failed to generate professor insight.',
-    });
+    res.status(500).json({ error: err?.message || 'Failed to generate professor insight.' });
   }
 });
 

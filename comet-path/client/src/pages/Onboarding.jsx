@@ -138,6 +138,7 @@ export default function Onboarding() {
   const [transferInput, setTransferInput] = useState('');
   const [courses, setCourses] = useState([]);
   const [completed, setCompleted] = useState(new Set());
+  const [geminiKey, setGeminiKey] = useState(localStorage.getItem('cometpath_gemini_key') || '');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -294,6 +295,22 @@ export default function Onboarding() {
               })()}
             </div>
 
+              <div>
+                <label className="block text-sm text-blue-300 mb-1">
+                  Gemini API key <span className="text-gray-500">(optional — enables AI advisor)</span>
+                </label>
+                <input
+                  className="w-full bg-space-700 border border-blue-900 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 font-mono text-sm"
+                  placeholder="AIza..."
+                  type="password"
+                  value={geminiKey}
+                  onChange={e => setGeminiKey(e.target.value)}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Get a free key at <span className="text-blue-400">aistudio.google.com</span>. Stored only in this browser.
+                </p>
+              </div>
+
             {error && <p className="text-red-400 mt-4 text-sm">{error}</p>}
 
             <button
@@ -301,6 +318,7 @@ export default function Onboarding() {
               onClick={() => {
                 if (!name.trim()) { setError('Please enter your name.'); return; }
                 setError('');
+                if (geminiKey.trim()) localStorage.setItem('cometpath_gemini_key', geminiKey.trim());
                 setStep(2);
                 loadCourses();
               }}

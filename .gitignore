@@ -1,8 +1,4 @@
-# Environment files (keep API keys and secrets out of git)
-comet-path/server/.env
-comet-path/server/.env.local
-*.env
+# .env files are committed for this hackathon project so all devices have keys
+# *.env.local is still excluded to avoid machine-specific overrides
 *.env.local
-# But allow the example template
-!*.env.example
 
